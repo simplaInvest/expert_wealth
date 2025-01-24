@@ -65,6 +65,9 @@ def format_data(df):
     df['connect_time'] = pd.to_datetime(df['connect_time'], format='%Y-%m-%d %H:%M:%S')
     df['disconnect_time'] = pd.to_datetime(df['disconnect_time'], format='%Y-%m-%d %H:%M:%S')
 
+    df['connect_time'] = df['connect_time'] - pd.Timedelta(hours=3)
+    df['disconnect_time'] = df['disconnect_time'] - pd.Timedelta(hours=3)
+
     # Padronizando as informações dos nossos números
     col_to_filter = [
         '3231420312', '1002 (3231420312 - Daniel)',

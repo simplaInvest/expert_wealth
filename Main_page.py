@@ -8,6 +8,7 @@ import pandas as pd  # type: ignore
 import plotly.express as px
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import time  # Para controle de atualização automática
 
 from funcs import load_calls, format_data
 
@@ -27,7 +28,13 @@ if "authenticated" not in st.session_state:
 
 if not st.session_state["authenticated"]:
     # Tela de login
-    st.title("Expert Comercial Wealth - Login")
+
+    # Centralizar o título
+    st.markdown(
+        "<h1 style='text-align: center; color: white;'>Expert Comercial Wealth</h1>",
+        unsafe_allow_html=True
+    )
+
     st.subheader("Insira a senha para acessar o dashboard.")
     
     # Campo de entrada de senha
@@ -45,8 +52,31 @@ else:
     ##      Início do Layout    ##
     ##############################
 
-    st.title("Expert Comercial Wealth")
+    # Centralizar o título da página após o login
+    st.markdown(
+        "<h1 style='text-align: center;'>Expert Comercial Wealth</h1>",
+        unsafe_allow_html=True
+    )
 
+    # Botão para atualizar os dados manualmente
+    if "last_updated" not in st.session_state:
+        st.session_state["last_updated"] = datetime.now()
+
+    # Adiciona botão no topo
+    with st.container():
+        st.button("Atualizar Dados", on_click=lambda: st.session_state.update({"last_updated": datetime.now()}))
+        st.write(f"Última atualização: {st.session_state['last_updated'].strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Atualização automática
+    if "last_auto_update" not in st.session_state:
+        st.session_state["last_auto_update"] = time.time()
+
+    current_time = time.time()
+    if current_time - st.session_state["last_auto_update"] >= 15 * 60:  # Atualiza a cada 15 minutos
+        st.session_state["last_updated"] = datetime.now()
+        st.session_state["last_auto_update"] = current_time
+
+    # Carrega os dados e formata
     cols_filters = st.columns(3)
 
     # Filtrar por data
@@ -70,8 +100,15 @@ else:
         else:
             st.warning("Por favor, selecione um intervalo válido.")
 
-        filtered_data = format_data(load_calls(start_date, end_date))
+        # Atualiza os dados ao carregar ou atualizar
+        @st.cache_data(ttl=15 * 60)
+        def get_filtered_data(start_date, end_date):
+            raw_data = load_calls(start_date, end_date)
+            return format_data(raw_data)
 
+        filtered_data = get_filtered_data(start_date, end_date)
+
+    # Continuação do código para filtros e gráficos
     with cols_filters[1]:
         sdrs = [
             '1002 (3231420312 - Daniel)',
@@ -93,12 +130,28 @@ else:
             filtered_data = filtered_data[filtered_data['CLI'] == selected_sdr]
 
     with cols_filters[2]:
+        filtered_data['call_time'] = filtered_data['disconnect_time'] - filtered_data['connect_time']
         duration_options = ["Zero", "Menos de 1 min", "Mais de 1 min", "Mais de 2 min"]
-        selected_durations = st.multiselect("Escolha a duração das chamadas", duration_options, help="Não está funcionando ainda")
+        selected_durations = st.multiselect("Escolha a duração das chamadas", duration_options, help="")
+        
+        if selected_durations:
+            duration_filters = []
+            if "Zero" in selected_durations:
+                duration_filters.append(filtered_data['call_time'] == timedelta(seconds=0))
+            if "Menos de 1 min" in selected_durations:
+                duration_filters.append((filtered_data['call_time'] > timedelta(seconds=0)) & 
+                                        (filtered_data['call_time'] < timedelta(minutes=1)))
+            if "Mais de 1 min" in selected_durations:
+                duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=1))
+            if "Mais de 2 min" in selected_durations:
+                duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=2))
+            else:
+                filtered_data = filtered_data
+            filtered_data = filtered_data[pd.concat(duration_filters, axis=1).any(axis=1)]
 
     st.divider()
 
-    cols_grafs = st.columns(3)
+    cols_grafs = st.columns(2)
 
     with cols_grafs[0].container():
         sdr_counts = filtered_data['CLI'].value_counts()
@@ -124,21 +177,48 @@ else:
         st.plotly_chart(bar_fig, use_container_width=True)
 
     with cols_grafs[1].container():
-        filtered_data['Data'] = filtered_data['connect_time'].dt.date
-        line_data = filtered_data.groupby('Data').size().reset_index(name='counts')
-        line_fig = px.line(line_data, x='Data', y='counts', markers=True, title='Número de Ligações ao Longo do Tempo')
-        if selected_sdr == "Visão Geral":
-            for sdr in sdrs:
-                sdr_data = filtered_data[filtered_data['CLI'] == sdr]
-                sdr_line_data = sdr_data.groupby('Data').size().reset_index(name=sdr)
-                line_fig.add_scatter(x=sdr_line_data['Data'], y=sdr_line_data[sdr], mode='lines+markers', name=sdr)
-
-        st.plotly_chart(line_fig, use_container_width=True)
-
-    with cols_grafs[2].container():
         filtered_data['Hora'] = filtered_data['connect_time'].dt.hour + filtered_data['connect_time'].dt.minute / 60
         hist_fig = px.histogram(filtered_data, x='Hora', nbins=14, title='Distribuição de Ligações por Hora do Dia',
                                 labels={'Hora': 'Hora do Dia'}, range_x=[7, 25])
         hist_fig.update_traces(marker_line_width=2, marker_line_color='black')
         hist_fig.update_layout(xaxis=dict(tickmode='linear', dtick=1))
         st.plotly_chart(hist_fig, use_container_width=True)
+
+
+    sdr_names = {
+        '1002 (3231420312 - Daniel)': 'Daniel',
+        '1004 (3231420313 - Toledo)': 'Toledo',
+        '1006 (3231420314 - Pedro Vieira)': 'Pedro Vieira',
+        '1008 (3231420315 - Saint Clair)': 'Saint Clair',
+        '1010 (3231420316 - Rúbio)': 'Rúbio',
+        '1012 (3231420310 - Marioti)': 'Marioti',
+        '1014 (3231420317 - Gustavo B)': 'Gustavo B',
+        '1015 (3231420319 - Gabriel)': 'Gabriel',
+        '1018 (3231420380 - Micaelli)': 'Micaelli',
+        '1021 (3231420381 - Lucas)': 'Lucas',
+        '1023 (3231420382 - Douglas)': 'Douglas',
+        '1025 (3231420383 - Tiago)': 'Tiago'
+    }
+
+    # Gera o gráfico principal
+    filtered_data['Data'] = filtered_data['connect_time'].dt.date
+    line_data = filtered_data.groupby('Data').size().reset_index(name='counts')
+    line_fig = px.line(line_data, x='Data', y='counts', markers=True, title='Número de Ligações ao Longo do Tempo')
+
+    # Adiciona as linhas de cada SDR com o nome simplificado na legenda
+    if selected_sdr == "Visão Geral":
+        for sdr in sdrs:
+            sdr_data = filtered_data[filtered_data['CLI'] == sdr]
+            sdr_line_data = sdr_data.groupby('Data').size().reset_index(name='counts')
+            if not sdr_line_data.empty:  # Adiciona apenas se houver dados
+                line_fig.add_scatter(
+                    x=sdr_line_data['Data'],
+                    y=sdr_line_data['counts'],
+                    mode='lines+markers',
+                    name=sdr_names[sdr]  # Usa apenas o nome do SDR
+                )
+
+    # Renderiza o gráfico no Streamlit
+    st.plotly_chart(line_fig, use_container_width=True)
+
+    st.dataframe(filtered_data)
