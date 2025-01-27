@@ -28,14 +28,11 @@ def load_calls(start_date, end_date):
         
         session_id = data['session_id']
         
-        # Definir os parâmetros de data
-        info = {'from_date': str(start_date), 'to_date': str(end_date)}
-        
-        # Solicitar os XDRs
-        req_data = {
-            'auth_info': json.dumps({'session_id': session_id}),
-            'params': json.dumps(info)
-        }
+        # INFO: SET DATE/TIME
+        info = {'from_date':'2025-01-25 00:00:00','to_date':'2025-01-28 00:00:00', 'show_unsuccessful' : '1'}
+
+        # GET XDRS
+        req_data = { 'auth_info': json.dumps({'session_id': session_id}), 'params': json.dumps(info) } 
         r = requests.post(api_base + 'Customer/get_customer_xdrs', data=req_data, verify=False)
         r.raise_for_status()  # Garante que não houve erro na requisição
         data = r.json()
