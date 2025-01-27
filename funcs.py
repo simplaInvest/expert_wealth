@@ -29,7 +29,7 @@ def load_calls(start_date, end_date):
         session_id = data['session_id']
         
         # INFO: SET DATE/TIME
-        info = {'from_date':'2025-01-25 00:00:00','to_date':'2025-01-28 00:00:00', 'show_unsuccessful' : '1'}
+        info = {'from_date': start_date,'to_date': end_date, 'show_unsuccessful' : '1'}
 
         # GET XDRS
         req_data = { 'auth_info': json.dumps({'session_id': session_id}), 'params': json.dumps(info) } 
