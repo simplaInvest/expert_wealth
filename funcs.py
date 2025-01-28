@@ -46,6 +46,8 @@ def format_data(df):
     df['connect_time'] = df['connect_time'] - pd.Timedelta(hours=3)
     df['disconnect_time'] = df['disconnect_time'] - pd.Timedelta(hours=3)
 
+    df['call_time'] = df['disconnect_time'] - df['connect_time']
+
     # Padronizando as informações dos nossos números
     col_to_filter = [
         '3231420312', '1002 (3231420312 - Daniel)',
@@ -83,4 +85,16 @@ def format_data(df):
     df['CLI'] = df['CLI'].replace(substituicoes)
 
 
+    return df
+
+def get_last_30_days_data():
+    # Data e hora de amanhã
+    end_date = datetime.now() + timedelta(days=1)
+    
+    # Data de 31 dias antes de amanhã
+    start_date = end_date - timedelta(days=31)
+    
+    # Chamar a função com as datas formatadas
+    df = format_data(load_calls(start_date.strftime('%Y-%m-%d %H:%M:%S'),
+                      end_date.strftime('%Y-%m-%d %H:%M:%S')))
     return df

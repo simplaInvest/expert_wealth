@@ -1,0 +1,8 @@
+[server]
+runOnSave = true
+
+[theme]
+base="dark"
+
+[client]
+showSidebarNavigation = false  # Isso remove a navegação automática das páginas

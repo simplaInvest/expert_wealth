@@ -102,7 +102,6 @@ with cols_filters[1]:
         filtered_data = filtered_data[filtered_data['CLI'] == selected_sdr]
 
 with cols_filters[2]:
-    filtered_data['call_time'] = filtered_data['disconnect_time'] - filtered_data['connect_time']
     duration_options = ["Todos", "Zero", "Menos de 1 min", "Mais de 1 min", "Mais de 2 min"]
     selected_durations = st.multiselect("Escolha a duração das chamadas", duration_options, help="")
     

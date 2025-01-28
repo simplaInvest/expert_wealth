@@ -1,7 +1,13 @@
 import streamlit as st
 
+# Carrega as senhas do secrets.toml
+logins = st.secrets["logins"]
+
 # Configuração inicial
-st.set_page_config(page_title="Login - Expert Comercial Wealth", page_icon="📊", layout="centered")
+st.set_page_config(page_title="Login - Expert Comercial Wealth", 
+                   page_icon="📊", 
+                   layout="wide", 
+                   initial_sidebar_state="collapsed")
 
 # Inicializa o estado de login
 if "authenticated" not in st.session_state:
@@ -30,27 +36,27 @@ def main():
     
     # Verifica o login e define permissões
     if login_button:
-        if username == "admin" and password == "admin":
+        if username == "admin" and password == logins["admin"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "admin"
             st.success("Bem-vindo, Admin! Redirecionando...")
             st.switch_page("pages/1_Admin.py")
 
-        elif username == "alfa" and password == "alfa":
+        elif username == "alfa" and password == logins["alfa"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "líder"
             st.session_state.team = "time_alfa"
             st.success("Bem-vindo, Líder do Time Alfa! Redirecionando...")
             st.switch_page("pages/2_time_alfa.py")
 
-        elif username == "beta" and password == "beta":
+        elif username == "beta" and password == logins["beta"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "líder"
             st.session_state.team = "time_beta"
             st.success("Bem-vindo, Líder do Time Beta! Redirecionando...")
             st.switch_page("pages/3_time_beta.py")
 
-        elif username == "charlie" and password == "charlie":
+        elif username == "charlie" and password == logins["charlie"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "líder"
             st.session_state.team = "time_charlie"
