@@ -158,35 +158,64 @@ else:
 
     with cols_grafs[0].container():
         sdr_counts = filtered_data['CLI'].value_counts()
-        bar_fig = px.bar(sdr_counts, orientation='h', title='Número de Ligações por SDR', labels={'index': 'SDR', 'value': 'Número de Ligações'})
-
+        
+        # Criar o gráfico de barras com os valores exibidos em cada barra
+        bar_fig = px.bar(
+            sdr_counts, 
+            orientation='h', 
+            title='Número de Ligações por SDR', 
+            labels={'index': 'SDR', 'value': 'Número de Ligações'},
+            text=sdr_counts  # Adiciona os valores das barras
+        )
+        
         # Calcular a média das ligações por SDR
         avg_calls = sdr_counts.mean()
-
+        
         # Adicionar linha vertical pontilhada vermelha para a média
         bar_fig.add_shape(
             type='line',
             x0=avg_calls, y0=-0.5, x1=avg_calls, y1=len(sdr_counts) - 0.5,
             line=dict(color='red', width=2, dash='dot')
         )
-
+        
         # Adicionar anotação para o valor da média no eixo x
         bar_fig.add_annotation(
             x=avg_calls, y=len(sdr_counts) - 0.5, text=f"Média: {avg_calls:.2f}",
             showarrow=True, arrowhead=2, ax=0, ay=-40,
             bgcolor="red"
         )
-
+        
+        # Ajustar o formato do texto nas barras
+        bar_fig.update_traces(textposition='outside')  # Posição do texto fora das barras
+        
+        # Exibir o gráfico
         st.plotly_chart(bar_fig, use_container_width=True)
 
-    with cols_grafs[1].container():
-        filtered_data['Hora'] = filtered_data['connect_time'].dt.hour + filtered_data['connect_time'].dt.minute / 60
-        hist_fig = px.histogram(filtered_data, x='Hora', nbins=14, title='Distribuição de Ligações por Hora do Dia',
-                                labels={'Hora': 'Hora do Dia'}, range_x=[7, 25])
-        hist_fig.update_traces(marker_line_width=2, marker_line_color='black')
-        hist_fig.update_layout(xaxis=dict(tickmode='linear', dtick=1))
-        st.plotly_chart(hist_fig, use_container_width=True)
 
+    with cols_grafs[1].container():
+        # Converter o tempo para horas decimais
+        filtered_data['Hora'] = filtered_data['connect_time'].dt.hour + filtered_data['connect_time'].dt.minute / 60
+        
+        # Criar o histograma com os valores exibidos em cada barra
+        hist_fig = px.histogram(
+            filtered_data, 
+            x='Hora', 
+            nbins=14, 
+            title='Distribuição de Ligações por Hora do Dia',
+            labels={'Hora': 'Hora do Dia'}, 
+            range_x=[7, 25],
+            text_auto=True  # Exibe os valores diretamente nas barras
+        )
+        
+        # Configurações visuais para o histograma
+        hist_fig.update_traces(marker_line_width=2, marker_line_color='black')  # Borda das barras
+        hist_fig.update_traces(textposition='outside')  # Posiciona os textos fora das barras
+        
+        # Ajuste do eixo x para exibir intervalos de 1 hora
+        hist_fig.update_layout(xaxis=dict(tickmode='linear', dtick=1))
+        
+        # Exibir o gráfico no Streamlit
+        st.plotly_chart(hist_fig, use_container_width=True)
 
     sdr_names = {
         '1002 (3231420312 - Daniel)': 'Daniel',
