@@ -104,7 +104,10 @@ else:
         @st.cache_data(ttl=15 * 60)
         def get_filtered_data(start_date, end_date):
             raw_data = load_calls(start_date, end_date)
-            return format_data(raw_data)
+            if raw_data.empty:
+                return st.warning('Não há chamadas no período selecionado')
+            else:
+                return format_data(raw_data)
 
         filtered_data = get_filtered_data(start_date, end_date)
 
@@ -131,7 +134,7 @@ else:
 
     with cols_filters[2]:
         filtered_data['call_time'] = filtered_data['disconnect_time'] - filtered_data['connect_time']
-        duration_options = ["Zero", "Menos de 1 min", "Mais de 1 min", "Mais de 2 min"]
+        duration_options = ["Todos", "Zero", "Menos de 1 min", "Mais de 1 min", "Mais de 2 min"]
         selected_durations = st.multiselect("Escolha a duração das chamadas", duration_options, help="")
         
         if selected_durations:
@@ -145,8 +148,8 @@ else:
                 duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=1))
             if "Mais de 2 min" in selected_durations:
                 duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=2))
-            else:
-                filtered_data = filtered_data
+            if "Todos" in selected_durations:
+                duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=0))
             filtered_data = filtered_data[pd.concat(duration_filters, axis=1).any(axis=1)]
 
     st.divider()

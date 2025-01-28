@@ -6,56 +6,37 @@ from datetime import date, timedelta, datetime
 import pandas as pd # type: ignore
 
 def load_calls(start_date, end_date):
-    # Configurações da API
-    api_hostname = 'mybilling.fvx.com.br:8444'
+    # API  
+    api_hostname = 'mybilling.fvx.com.br:8444' 
     api_user = 'gustavo.andrade@simplawealth.com'
     password = '$impl@123'
-    api_base = f'https://{api_hostname}/rest/'
-    
-    # Ignorar avisos de certificados autoassinados
-    requests.packages.urllib3.disable_warnings()
-    
-    try:
-        # Login na API
-        req_data = {'params': json.dumps({'login': api_user, 'password': password})}
-        r = requests.post(api_base + 'Session/login', data=req_data, verify=False)
-        r.raise_for_status()  # Garante que não houve erro na requisição
-        data = r.json()
-        
-        # Verificar se o login foi bem-sucedido
-        if 'session_id' not in data:
-            raise ValueError("Erro ao obter session_id. Verifique as credenciais.")
-        
-        session_id = data['session_id']
-        
-        # INFO: SET DATE/TIME
-        info = {'from_date': start_date,'to_date': end_date, 'show_unsuccessful' : '1'}
+    api_base = 'https://%s/rest/' % api_hostname 
+    # for self-signed certificates - remove before going  live 
+    requests.packages.urllib3.disable_warnings() 
 
-        # GET XDRS
-        req_data = { 'auth_info': json.dumps({'session_id': session_id}), 'params': json.dumps(info) } 
-        r = requests.post(api_base + 'Customer/get_customer_xdrs', data=req_data, verify=False)
-        r.raise_for_status()  # Garante que não houve erro na requisição
-        data = r.json()
+    # login 
+    req_data = { 'params': json.dumps({'login': api_user, 'password':password})} 
+    r = requests.post(api_base + 'Session/login', data=req_data, verify=False) 
+    data = r.json() 
+    session_id = data['session_id']
+
+    # INFO: SET DATE/TIME
+    info = {'from_date': str(start_date) ,'to_date': str(end_date), 'show_unsuccessful' : '1'}
+
+    # GET XDRS
+    req_data = { 'auth_info': json.dumps({'session_id': session_id}), 'params': json.dumps(info) } 
+    r = requests.post(api_base + 'Customer/get_customer_xdrs', data=req_data, verify=False) 
+    data = r.json()      
+
+    # Verificar se a resposta contém a lista xdr_list
+    if 'xdr_list' in data and data['xdr_list']:
+        # Criar DataFrame com os dados
+        df = pd.DataFrame(data['xdr_list'])
+    else:
+        # Retorna um DataFrame vazio se não houver dados
+        df = pd.DataFrame()
         
-        # Verificar se a resposta contém a lista xdr_list
-        if 'xdr_list' in data and data['xdr_list']:
-            # Criar DataFrame com os dados
-            df = pd.DataFrame(data['xdr_list'])
-        else:
-            # Retorna um DataFrame vazio se não houver dados
-            df = pd.DataFrame()
-        
-        return df
-    
-    except requests.exceptions.RequestException as e:
-        print(f"Erro na requisição da API: {e}")
-        return pd.DataFrame()  # Retorna DataFrame vazio em caso de erro
-    except ValueError as e:
-        print(f"Erro nos dados da API: {e}")
-        return pd.DataFrame()  # Retorna DataFrame vazio em caso de erro
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-        return pd.DataFrame()  # Retorna DataFrame vazio em caso de erro
+    return df
     
 def format_data(df):
     # Transformando em datetime
