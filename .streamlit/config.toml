@@ -5,4 +5,4 @@ runOnSave = true
 base="dark"
 
 [client]
-showSidebarNavigation = false  # Isso remove a navegação automática das páginas
+showSidebarNavigation = false  

@@ -27,23 +27,10 @@ if "authenticated" not in st.session_state or not st.session_state.authenticated
 # Chama a sidebar
 setup_sidebar()
 
-# Botão para atualizar os dados manualmente
-if "last_updated" not in st.session_state:
-    st.session_state["last_updated"] = datetime.now()
-
-# Adiciona botão no topo
-with st.container():
-    st.button("Atualizar Dados", on_click=lambda: st.session_state.update({"last_updated": datetime.now()}))
-    st.write(f"Última atualização: {st.session_state['last_updated'].strftime('%Y-%m-%d %H:%M:%S')}")
-
-# Atualização automática
-if "last_auto_update" not in st.session_state:
-    st.session_state["last_auto_update"] = time.time()
-
-current_time = time.time()
-if current_time - st.session_state["last_auto_update"] >= 15 * 60:  # Atualiza a cada 15 minutos
-    st.session_state["last_updated"] = datetime.now()
-    st.session_state["last_auto_update"] = current_time
+if st.button("Limpar Cache"):
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    st.success("Cache limpo! Recarregue os dados.")
 
 # Carrega os dados e formata
 cols_filters = st.columns(3)
@@ -128,13 +115,15 @@ with cols_grafs[0].container():
     # Obter contagem de valores e ordenar em ordem decrescente
     sdr_counts = filtered_data['CLI'].value_counts().sort_values(ascending=True)
     
-    # Criar o gráfico de barras com os valores exibidos em cada barra
+    df_sdr = sdr_counts.reset_index()
+    df_sdr.columns = ['SDR', 'Número de Ligações']
     bar_fig = px.bar(
-        sdr_counts, 
-        orientation='h', 
+        df_sdr, 
+        x='Número de Ligações', 
+        y='SDR', 
+        orientation='h',
         title='Número de Ligações por SDR', 
-        labels={'index': 'SDR', 'value': 'Número de Ligações'},
-        text=sdr_counts  # Adiciona os valores das barras
+        text='Número de Ligações'
     )
     
     # Calcular a média das ligações por SDR
@@ -149,9 +138,9 @@ with cols_grafs[0].container():
     
     # Adicionar anotação para o valor da média no eixo x
     bar_fig.add_annotation(
-        x=avg_calls, y=len(sdr_counts) - 0.5, text=f"Média: {avg_calls:.2f}",
+        x=avg_calls, y=len(sdr_counts) - 0.5, text=f'Média: {avg_calls:.2f}',
         showarrow=True, arrowhead=2, ax=0, ay=-40,
-        bgcolor="red"
+        bgcolor='red'
     )
     
     # Ajustar o formato do texto nas barras
