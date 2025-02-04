@@ -30,15 +30,9 @@ if st.button("Limpar Cache"):
     st.cache_resource.clear()
     st.success("Cache limpo! Recarregue os dados.")
 
-# Atualiza os dados ao carregar ou atualizar
-def get_filtered_data(start_date, end_date):
-    raw_data = load_calls(start_date, end_date)
-    if raw_data.empty:
-        return st.warning('Não há chamadas no período selecionado')
-    else:
-        return format_data(raw_data)
-
 filtered_data = get_last_30_days_data()
+
+st.dataframe(filtered_data)
 
 ###########################################################################################################
 
