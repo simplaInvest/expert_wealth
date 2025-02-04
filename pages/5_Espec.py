@@ -25,26 +25,12 @@ st.write("Bem-vindo ao modo espectador do Dashboard.")
 ###########################################################################################################
 #                                Carregar dados
 
-# Botão para atualizar os dados manualmente
-if "last_updated" not in st.session_state:
-    st.session_state["last_updated"] = datetime.now()
-
-# Adiciona botão no topo
-with st.container():
-    st.button("Atualizar Dados", on_click=lambda: st.session_state.update({"last_updated": datetime.now()}))
-    st.write(f"Última atualização: {st.session_state['last_updated'].strftime('%Y-%m-%d %H:%M:%S')}")
-
-# Atualização automática
-if "last_auto_update" not in st.session_state:
-    st.session_state["last_auto_update"] = time.time()
-
-current_time = time.time()
-if current_time - st.session_state["last_auto_update"] >= 15 * 60:  # Atualiza a cada 15 minutos
-    st.session_state["last_updated"] = datetime.now()
-    st.session_state["last_auto_update"] = current_time
+if st.button("Limpar Cache"):
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    st.success("Cache limpo! Recarregue os dados.")
 
 # Atualiza os dados ao carregar ou atualizar
-@st.cache_data(ttl=15 * 60)
 def get_filtered_data(start_date, end_date):
     raw_data = load_calls(start_date, end_date)
     if raw_data.empty:
@@ -156,7 +142,7 @@ with col2:
         bar_fig = px.bar(
             sdr_counts, 
             orientation='h', 
-            title='Ligações com mais de 1 min hoje', 
+            title='Ligações atendidas hoje', 
             labels={'index': 'SDR', 'value': 'Número de Ligações'},
             text=sdr_counts  # Adiciona os valores das barras
         )
@@ -193,7 +179,7 @@ with col2:
         bar_fig = px.bar(
             sdr_counts, 
             orientation='h', 
-            title='Ligações com mais de 1 min nos últimos 30 dias', 
+            title='Ligações atendidas nos últimos 30 dias', 
             labels={'index': 'SDR', 'value': 'Número de Ligações'},
             text=sdr_counts  # Adiciona os valores das barras
         )

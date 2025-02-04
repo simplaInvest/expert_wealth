@@ -27,7 +27,7 @@ def main():
     
     st.title("Expert Comercial Wealth")
 
-    # Formulário de Login
+    # Formulário de Login'
     with st.form("login_form"):
         st.subheader("Acesso ao Dashboard")
         username = st.text_input("Nome", placeholder="Digite seu nome")
@@ -49,12 +49,12 @@ def main():
             st.success("Bem-vindo, Líder do Time Alfa! Redirecionando...")
             st.switch_page("pages/2_time_alfa.py")
 
-        elif username == "beta" and password == logins["beta"]:
+        elif username == "bravo" and password == logins["bravo"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "líder"
-            st.session_state.team = "time_beta"
-            st.success("Bem-vindo, Líder do Time Beta! Redirecionando...")
-            st.switch_page("pages/3_time_beta.py")
+            st.session_state.team = "time_bravo"
+            st.success("Bem-vindo, Líder do Time bravo! Redirecionando...")
+            st.switch_page("pages/3_time_bravo.py")
 
         elif username == "charlie" and password == logins["charlie"]:
             st.session_state.authenticated = True

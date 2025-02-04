@@ -22,7 +22,7 @@ def setup_sidebar():
         if st.session_state.user_type == "admin":
             st.page_link("pages/1_Admin.py", label="Admin")
             st.page_link("pages/2_time_alfa.py", label="Time Alfa")
-            st.page_link("pages/3_time_beta.py", label="Time Beta")
+            st.page_link("pages/3_time_bravo.py", label="Time Bravo")
             st.page_link("pages/4_time_charlie.py", label="Time Charlie")
             st.page_link("pages/5_Espec.py", label="Visão de Espectador")
 
@@ -30,8 +30,8 @@ def setup_sidebar():
         elif st.session_state.user_type == "líder":
             if st.session_state.team == "time_alfa":
                 st.page_link("pages/2_time_alfa.py", label="Time Alfa")
-            elif st.session_state.team == "time_beta":
-                st.page_link("pages/3_time_beta.py", label="Time Beta")
+            elif st.session_state.team == "time_bravo":
+                st.page_link("pages/3_time_bravo.py", label="Time Bravo")
             elif st.session_state.team == "time_charlie":
                 st.page_link("pages/4_time_charlie.py", label="Time Charlie")
 
