@@ -21,19 +21,16 @@ def setup_sidebar():
         # Se for admin, exibe todas as páginas
         if st.session_state.user_type == "admin":
             st.page_link("pages/1_Admin.py", label="Admin")
-            st.page_link("pages/2_time_alfa.py", label="Time Alfa")
             st.page_link("pages/3_time_bravo.py", label="Time Bravo")
-            st.page_link("pages/4_time_charlie.py", label="Time Charlie")
+            st.page_link("pages/4_time_fenix.py", label="Time Fenix")
             st.page_link("pages/5_Espec.py", label="Visão de Espectador")
 
         # Se for líder, exibe apenas sua página e a de espectador
         elif st.session_state.user_type == "líder":
-            if st.session_state.team == "time_alfa":
-                st.page_link("pages/2_time_alfa.py", label="Time Alfa")
-            elif st.session_state.team == "time_bravo":
+            if st.session_state.team == "time_bravo":
                 st.page_link("pages/3_time_bravo.py", label="Time Bravo")
-            elif st.session_state.team == "time_charlie":
-                st.page_link("pages/4_time_charlie.py", label="Time Charlie")
+            elif st.session_state.team == "time_fenix":
+                st.page_link("pages/4_time_fenix.py", label="Time Fenix")
 
             st.page_link("pages/5_Espec.py", label="Visão de Espectador")
 

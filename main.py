@@ -21,9 +21,9 @@ st.sidebar.empty()
 # Página de Login
 def main():
     # Centraliza a logo
-    col1, col2, col3 = st.columns([1,3,1])
+    col1, col2, col3 = st.columns([1,1,1])
     with col2:
-        st.image("path_to_logo.png", width=500)  # Substitua pelo caminho correto da logo
+        st.image("path_to_logo.png", use_container_width=True)  # Substitua pelo caminho correto da logo
     
     st.title("Expert Comercial Wealth")
 
@@ -42,13 +42,6 @@ def main():
             st.success("Bem-vindo, Admin! Redirecionando...")
             st.switch_page("pages/1_Admin.py")
 
-        elif username == "alfa" and password == logins["alfa"]:
-            st.session_state.authenticated = True
-            st.session_state.user_type = "líder"
-            st.session_state.team = "time_alfa"
-            st.success("Bem-vindo, Líder do Time Alfa! Redirecionando...")
-            st.switch_page("pages/2_time_alfa.py")
-
         elif username == "bravo" and password == logins["bravo"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "líder"
@@ -56,12 +49,12 @@ def main():
             st.success("Bem-vindo, Líder do Time bravo! Redirecionando...")
             st.switch_page("pages/3_time_bravo.py")
 
-        elif username == "charlie" and password == logins["charlie"]:
+        elif username == "fenix" and password == logins["fenix"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "líder"
-            st.session_state.team = "time_charlie"
-            st.success("Bem-vindo, Líder do Time Charlie! Redirecionando...")
-            st.switch_page("pages/4_time_charlie.py")
+            st.session_state.team = "time_fenix"
+            st.success("Bem-vindo, Líder do Time Fenix! Redirecionando...")
+            st.switch_page("pages/4_time_fenix.py")
 
         else:
             st.session_state.authenticated = False

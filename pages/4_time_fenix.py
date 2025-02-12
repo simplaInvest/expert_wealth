@@ -12,28 +12,27 @@ import matplotlib.pyplot as plt
 import time  # Para controle de atualização automática
 from funcs import load_calls, format_data
 
-
-st.set_page_config(page_title="Time Bravo", page_icon="🐺", layout="wide")
+st.set_page_config(page_title="Time Fênix", page_icon="🐦", layout="wide")
 
 # Verifica autenticação
 if "authenticated" not in st.session_state or not st.session_state.authenticated:
     st.warning("Acesso negado. Faça login para acessar esta página.")
     st.switch_page("main.py")
 
-# Permite acesso se for admin ou líder do Time Bravo
-if st.session_state.user_type == "admin" or (st.session_state.user_type == "líder" and st.session_state.team == "time_bravo"):
+# Permite acesso se for admin ou líder do Time fenix
+if st.session_state.user_type == "admin" or (st.session_state.user_type == "líder" and st.session_state.team == "time_fenix"):
     
     # Exibe a sidebar configurada corretamente
     setup_sidebar()
 
-    # Exibe a logo do time centralizada
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        st.image("time_bravo.png", use_container_width=True)
+        st.image("time_fnx.png", use_container_width=True)
+
 
     # Conteúdo da página
-    st.title("Painel do Time Bravo")
-    st.write("Bem-vindo à página do Time Bravo, Bruno.")
+    st.title("Painel do Time Fênix")
+    st.write("Bem-vindo à página do Time Fênix, Fernanda.")
 
 else:
     st.warning("Acesso negado.")
@@ -76,20 +75,22 @@ with cols_filters[0]:
 
 # filtrar somente os membros do time
 col_to_filter = [
-        '1021 (3231420381 - Felipe Altmann)',
-        '1023 (3231420382 - Rafael Sanchez)',
-        '2017 (3231420384 - Paula Leitão)',
-        '2021 (3231420388 - Bruno Veiga)'
+        '2016 (3231420318 - Victor Corrêa)',
+        '2018 (3231420386 - Débora Bordonal)',
+        '2014 (3231420112 - Douglas Santos)',
+        '2020 (3231420387 - Victor Hugo)',
+        '2015 (3231420113 - Marlon Mendes)'
     ]
 
 filtered_data = filtered_data.loc[filtered_data['CLI'].isin(col_to_filter)]
 
 with cols_filters[1]:
     sdrs_dict = {
-        '1021 (3231420381 - Felipe Altmann)': 'Felipe Altmann',
-        '1023 (3231420382 - Rafael Sanchez)': 'Rafael Sanchez',
-        '2017 (3231420384 - Paula Leitão)': 'Paula Leitão',
-        '2021 (3231420388 - Bruno Veiga)': 'Bruno Veiga'
+        '2016 (3231420318 - Victor Corrêa)' : 'Victor C',
+        '2018 (3231420386 - Débora Bordonal)': 'Débora',
+        '2014 (3231420112 - Douglas Santos)': 'Douglas',
+        '2020 (3231420387 - Victor Hugo)': 'Victor H',
+        '2015 (3231420113 - Marlon Mendes)': 'Marlon'
     }
     
     # Lista apenas os nomes para exibição
