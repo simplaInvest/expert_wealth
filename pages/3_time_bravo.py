@@ -13,7 +13,7 @@ import time  # Para controle de atualização automática
 from funcs import load_calls, format_data
 
 
-st.set_page_config(page_title="Time Bravo", page_icon="🐺", layout="wide")
+st.set_page_config(page_title="Time Bravo", page_icon="⚔️", layout="wide")
 
 # Verifica autenticação
 if "authenticated" not in st.session_state or not st.session_state.authenticated:

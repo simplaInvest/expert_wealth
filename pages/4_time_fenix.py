@@ -32,7 +32,7 @@ if st.session_state.user_type == "admin" or (st.session_state.user_type == "líd
 
     # Conteúdo da página
     st.title("Painel do Time Fênix")
-    st.write("Bem-vindo à página do Time Fênix, Fernanda.")
+    st.write("Bem-vinda à página do Time Fênix, Fernanda.")
 
 else:
     st.warning("Acesso negado.")

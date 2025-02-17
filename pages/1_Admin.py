@@ -79,7 +79,7 @@ with cols_filters[1]:
         '1014 (3231420317 - Gustavo B)',
         '1015 (3231420319 - Gabriel)',
         '1018 (3231420380 - Micaelli)',
-        '1021 (3231420381 - Lucas)',
+        '1021 (3231420381 - Felipe Altmann)',
         '1023 (3231420382 - Douglas)',
         '1025 (3231420383 - Tiago)'
     ]
@@ -185,7 +185,7 @@ sdr_names = {
     '1014 (3231420317 - Gustavo B)': 'Gustavo B',
     '1015 (3231420319 - Gabriel)': 'Gabriel',
     '1018 (3231420380 - Micaelli)': 'Micaelli',
-    '1021 (3231420381 - Lucas)': 'Lucas',
+    '1021 (3231420381 - Felipe Altmann)': 'Felipe Altmann',
     '1023 (3231420382 - Douglas)': 'Douglas',
     '1025 (3231420383 - Tiago)': 'Tiago'
 }
