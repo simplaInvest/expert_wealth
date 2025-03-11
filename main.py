@@ -56,6 +56,13 @@ def main():
             st.success("Bem-vindo, Líder do Time Fenix! Redirecionando...")
             st.switch_page("pages/4_time_fenix.py")
 
+        elif username == "bulls" and password == logins["bulls"]:
+            st.session_state.authenticated = True
+            st.session_state.user_type = "líder"
+            st.session_state.team = "time_bulls"
+            st.success("Bem-vindo, Líder do Time Bulls! Redirecionando...")
+            st.switch_page("pages/6_time_bulls.py")
+
         else:
             st.session_state.authenticated = False
             st.session_state.user_type = None

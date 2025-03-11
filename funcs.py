@@ -70,7 +70,8 @@ def format_data(df):
         '3231420386', '2018 (3231420386 - Débora Bordonal)',
         '3231420387', '2020 (3231420387 - Victor Hugo)',
         '3231420388', '2021 (3231420388 - Bruno Veiga)',
-        '3231420389', '2022 (3231420389 - Matheus Ferreira)'
+        '3231420389', '2022 (3231420389 - Matheus Ferreira)',
+        '3231420106', '2023 (3231420106 - Melissa)'
     ]
 
     df = df.loc[df['CLI'].isin(col_to_filter)]
@@ -96,7 +97,8 @@ def format_data(df):
         '3231420386': '2018 (3231420386 - Débora Bordonal)',
         '3231420387': '2020 (3231420387 - Victor Hugo)',
         '3231420388': '2021 (3231420388 - Bruno Veiga)',
-        '3231420389': '2022 (3231420389 - Matheus Ferreira)'
+        '3231420389': '2022 (3231420389 - Matheus Ferreira)',
+        '3231420106': '2023 (3231420106 - Melissa)'
     }
 
     df['CLI'] = df['CLI'].replace(substituicoes)
