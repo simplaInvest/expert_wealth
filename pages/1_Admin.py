@@ -93,6 +93,15 @@ with cols_filters[1]:
         '2017 (3231420384 - Paula Leitão)',
         '2021 (3231420388 - Bruno Veiga)'
     ]
+    trainees = [
+        '2024 (3231420114 - Gabriel Soares)',
+        '2025 (3231420311 - Alexander Neto)',
+        '2026 (3231420160 - Leonnardo Gomes)',
+        '2027 (3231420161 - Mateus Lage)',
+        '2028 (3231420162 - Gustavo Nogueira)',
+        '2029 (3231420163 - Emily Rocha)'
+    ]
+
     type_of_operator = st.radio("Escolha quem quer analisar:", ['SDRs', 'Consultores'], horizontal = True)
     if type_of_operator == 'SDRs':
         selected_sdr = st.selectbox("Escolha um SDR", ["Visão Geral"] + sdrs, help="Escolha o SDR que quer analisar")
@@ -125,7 +134,7 @@ with cols_filters[2]:
 
 st.divider()
 
-tab1, tab2 = st.tabs(['SDRs', 'Consultores'])
+tab1, tab2, tab3 = st.tabs(['SDRs', 'Consultores', 'Trainees'])
 
 with tab1:
     filtered_data_sdrs = filtered_data.loc[filtered_data['CLI'].isin(sdrs)]
@@ -335,3 +344,103 @@ with tab2:
     st.plotly_chart(line_fig, use_container_width=True)
 
     st.dataframe(filtered_data_consultores)
+
+with tab3:
+    filtered_data_trainees = filtered_data.loc[filtered_data['CLI'].isin(trainees)]
+    cols_grafs = st.columns(2)
+
+    with cols_grafs[0].container():
+        # Obter contagem de valores e ordenar em ordem decrescente
+        trainee_counts = filtered_data_trainees['CLI'].value_counts().sort_values(ascending=True)
+        
+        df_trainee = trainee_counts.reset_index()
+        df_trainee.columns = ['trainee', 'Número de Ligações']
+        bar_fig = px.bar(
+            df_trainee, 
+            x='Número de Ligações', 
+            y='trainee', 
+            orientation='h',
+            title='Número de Ligações por trainee', 
+            text='Número de Ligações'
+        )
+        
+        # Calcular a média das ligações por trainee
+        avg_calls = trainee_counts.mean()
+        
+        # Adicionar linha vertical pontilhada vermelha para a média
+        bar_fig.add_shape(
+            type='line',
+            x0=avg_calls, y0=-0.5, x1=avg_calls, y1=len(trainee_counts) - 0.5,
+            line=dict(color='red', width=2, dash='dot')
+        )
+        
+        # Adicionar anotação para o valor da média no eixo x
+        bar_fig.add_annotation(
+            x=avg_calls, y=len(trainee_counts) - 0.5, text=f'Média: {avg_calls:.2f}',
+            showarrow=True, arrowhead=2, ax=0, ay=-40,
+            bgcolor='red'
+        )
+        
+        # Ajustar o formato do texto nas barras
+        bar_fig.update_traces(textposition='outside')  # Posição do texto fora das barras
+        
+        # Exibir o gráfico
+        st.plotly_chart(bar_fig, use_container_width=True)
+
+
+    with cols_grafs[1].container():
+        # Converter o tempo para horas decimais
+        filtered_data_trainees['Hora'] = filtered_data_trainees['connect_time'].dt.hour + filtered_data_trainees['connect_time'].dt.minute / 60
+        
+        # Criar o histograma com os valores exibidos em cada barra
+        hist_fig = px.histogram(
+            filtered_data_trainees, 
+            x='Hora', 
+            nbins=14, 
+            title='Distribuição de Ligações por Hora do Dia',
+            labels={'Hora': 'Hora do Dia'}, 
+            range_x=[7, 25],
+            text_auto=True  # Exibe os valores diretamente nas barras
+        )
+        
+        # Configurações visuais para o histograma
+        hist_fig.update_traces(marker_line_width=2, marker_line_color='black')  # Borda das barras
+        hist_fig.update_traces(textposition='outside')  # Posiciona os textos fora das barras
+        
+        # Ajuste do eixo x para exibir intervalos de 1 hora
+        hist_fig.update_layout(xaxis=dict(tickmode='linear', dtick=1))
+        
+        # Exibir o gráfico no Streamlit
+        st.plotly_chart(hist_fig, use_container_width=True)
+
+    trainees_names = {
+        '2024 (3231420114 - Gabriel Soares)': 'Gabriel Soares',
+        '2025 (3231420311 - Alexander Neto)': 'Alexander Neto',
+        '2026 (3231420160 - Leonnardo Gomes)': 'Leo Gomes',
+        '2027 (3231420161 - Mateus Lage)': 'Mateus Lage',
+        '2028 (3231420162 - Gustavo Nogueira)': 'Gustavo N.',
+        '2029 (3231420163 - Emily Rocha)': 'Emily Rocha'
+    }
+
+    # Gera o gráfico principal
+    filtered_data_trainees['Data'] = filtered_data_trainees['connect_time'].dt.date
+    line_data = filtered_data_trainees.groupby('Data').size().reset_index(name='counts')
+    line_fig = px.line(line_data, x='Data', y='counts', markers=True, title='Número de Ligações ao Longo do Tempo')
+
+    # Adiciona as linhas de cada trainee com o nome simplificado na legenda
+    if selected_sdr == "Visão Geral":
+        for trainee in trainees:
+            trainee_data = filtered_data_trainees[filtered_data_trainees['CLI'] == trainee]
+            trainee_line_data = trainee_data.groupby('Data').size().reset_index(name='counts')
+            if not trainee_line_data.empty:  # Adiciona apenas se houver dados
+                line_fig.add_scatter(
+                    x=trainee_line_data['Data'],
+                    y=trainee_line_data['counts'],
+                    mode='lines+markers',
+                    name=trainees_names[trainee]  # Usa apenas o nome do trainee
+                )
+
+    # Renderiza o gráfico no Streamlit
+    st.plotly_chart(line_fig, use_container_width=True)
+
+    st.dataframe(filtered_data_trainees)
