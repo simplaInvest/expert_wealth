@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import time  # Para controle de atualização automática
 
-from funcs import load_calls, format_data
+from funcs import load_calls, format_data, preparar_dataframe, carregar_planilha
 from sidebar import setup_sidebar
 
 ##############################
@@ -27,10 +27,18 @@ if "authenticated" not in st.session_state or not st.session_state.authenticated
 # Chama a sidebar
 setup_sidebar()
 
-if st.button("Limpar Cache"):
+if st.button("Limpar Tudo"):
+    # Limpa o cache
     st.cache_data.clear()
     st.cache_resource.clear()
-    st.success("Cache limpo! Recarregue os dados.")
+
+    # Limpa o session_state
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+
+    st.success("Cache e estado da sessão limpos! Recarregue os dados.")
+
+df_ligacoes = st.session_state.get("df_chamadas")
 
 # Carrega os dados e formata
 cols_filters = st.columns(3)
@@ -56,16 +64,14 @@ with cols_filters[0]:
     else:
         st.warning("Por favor, selecione um intervalo válido.")
 
-    # Atualiza os dados ao carregar ou atualizar
-    @st.cache_data(ttl=15 * 60)
-    def get_filtered_data(start_date, end_date):
-        raw_data = load_calls(start_date, end_date)
-        if raw_data.empty:
-            return st.warning('Não há chamadas no período selecionado')
-        else:
-            return format_data(raw_data)
+    # Filtra o DataFrame com base nas datas selecionadas
+    filtered_data = df_ligacoes[
+        (df_ligacoes["Início da ligação"] >= start_date) &
+        (df_ligacoes["Início da ligação"] <= end_date)
+    ]
 
-    filtered_data = get_filtered_data(start_date, end_date)
+    st.write(f"Exibindo {len(filtered_data)} chamadas entre {start_date.date()} e {end_date.date()}")
+    
 
 # Continuação do código para filtros e gráficos
 with cols_filters[1]:
@@ -111,7 +117,8 @@ with cols_filters[1]:
         selected_sdr = st.selectbox("Escolha uma opção acima", ["Visão Geral"], help="Escolha uma das opções acima")
     
     if selected_sdr != "Visão Geral":
-        filtered_data = filtered_data[filtered_data['CLI'] == selected_sdr]
+        filtered_data = filtered_data[filtered_data['Usuário'] == selected_sdr]
+    
 
 with cols_filters[2]:
     duration_options = ["Todos", "Zero", "Menos de 1 min", "Mais de 1 min", "Mais de 2 min"]
@@ -120,29 +127,29 @@ with cols_filters[2]:
     if selected_durations:
         duration_filters = []
         if "Zero" in selected_durations:
-            duration_filters.append(filtered_data['call_time'] == timedelta(seconds=0))
+            duration_filters.append(filtered_data['Tempo da ligação'] == timedelta(seconds=0))
         if "Menos de 1 min" in selected_durations:
-            duration_filters.append((filtered_data['call_time'] > timedelta(seconds=0)) & 
-                                    (filtered_data['call_time'] < timedelta(minutes=1)))
+            duration_filters.append((filtered_data['Tempo da ligação'] > timedelta(seconds=0)) & 
+                                    (filtered_data['Tempo da ligação'] < timedelta(minutes=1)))
         if "Mais de 1 min" in selected_durations:
-            duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=1))
+            duration_filters.append(filtered_data['Tempo da ligação'] >= timedelta(minutes=1))
         if "Mais de 2 min" in selected_durations:
-            duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=2))
+            duration_filters.append(filtered_data['Tempo da ligação'] >= timedelta(minutes=2))
         if "Todos" in selected_durations:
-            duration_filters.append(filtered_data['call_time'] >= timedelta(minutes=0))
+            duration_filters.append(filtered_data['Tempo da ligação'] >= timedelta(minutes=0))
         filtered_data = filtered_data[pd.concat(duration_filters, axis=1).any(axis=1)]
-
+    
 st.divider()
 
 tab1, tab2, tab3 = st.tabs(['SDRs', 'Consultores', 'Trainees'])
 
 with tab1:
-    filtered_data_sdrs = filtered_data.loc[filtered_data['CLI'].isin(sdrs)]
+    filtered_data_sdrs = filtered_data.loc[filtered_data['Usuário'].isin(sdrs)]
     cols_grafs = st.columns(2)
 
     with cols_grafs[0].container():
         # Obter contagem de valores e ordenar em ordem decrescente
-        sdr_counts = filtered_data_sdrs['CLI'].value_counts().sort_values(ascending=True)
+        sdr_counts = filtered_data_sdrs['Usuário'].value_counts().sort_values(ascending=True)
         
         df_sdr = sdr_counts.reset_index()
         df_sdr.columns = ['SDR', 'Número de Ligações']
@@ -181,7 +188,7 @@ with tab1:
 
     with cols_grafs[1].container():
         # Converter o tempo para horas decimais
-        filtered_data_sdrs['Hora'] = filtered_data_sdrs['connect_time'].dt.hour + filtered_data_sdrs['connect_time'].dt.minute / 60
+        filtered_data_sdrs['Hora'] = filtered_data_sdrs['Início da ligação'].dt.hour + filtered_data_sdrs['Início da ligação'].dt.minute / 60
         
         # Criar o histograma com os valores exibidos em cada barra
         hist_fig = px.histogram(
@@ -220,14 +227,14 @@ with tab1:
     }
 
     # Gera o gráfico principal
-    filtered_data_sdrs['Data'] = filtered_data_sdrs['connect_time'].dt.date
+    filtered_data_sdrs['Data'] = filtered_data_sdrs['Início da ligação'].dt.date
     line_data = filtered_data_sdrs.groupby('Data').size().reset_index(name='counts')
     line_fig = px.line(line_data, x='Data', y='counts', markers=True, title='Número de Ligações ao Longo do Tempo')
 
     # Adiciona as linhas de cada SDR com o nome simplificado na legenda
     if selected_sdr == "Visão Geral":
         for sdr in sdrs:
-            sdr_data = filtered_data_sdrs[filtered_data_sdrs['CLI'] == sdr]
+            sdr_data = filtered_data_sdrs[filtered_data_sdrs['Usuário'] == sdr]
             sdr_line_data = sdr_data.groupby('Data').size().reset_index(name='counts')
             if not sdr_line_data.empty:  # Adiciona apenas se houver dados
                 line_fig.add_scatter(
@@ -243,12 +250,12 @@ with tab1:
     st.dataframe(filtered_data_sdrs)
 
 with tab2:
-    filtered_data_consultores = filtered_data.loc[filtered_data['CLI'].isin(consultores)]
+    filtered_data_consultores = filtered_data.loc[filtered_data['Usuário'].isin(consultores)]
     cols_grafs = st.columns(2)
 
     with cols_grafs[0].container():
         # Obter contagem de valores e ordenar em ordem decrescente
-        consultor_counts = filtered_data_consultores['CLI'].value_counts().sort_values(ascending=True)
+        consultor_counts = filtered_data_consultores['Usuário'].value_counts().sort_values(ascending=True)
         
         df_consultor = consultor_counts.reset_index()
         df_consultor.columns = ['Consultor', 'Número de Ligações']
@@ -287,7 +294,7 @@ with tab2:
 
     with cols_grafs[1].container():
         # Converter o tempo para horas decimais
-        filtered_data_consultores['Hora'] = filtered_data_consultores['connect_time'].dt.hour + filtered_data_consultores['connect_time'].dt.minute / 60
+        filtered_data_consultores['Hora'] = filtered_data_consultores['Início da ligação'].dt.hour + filtered_data_consultores['Início da ligação'].dt.minute / 60
         
         # Criar o histograma com os valores exibidos em cada barra
         hist_fig = px.histogram(
@@ -308,7 +315,7 @@ with tab2:
         hist_fig.update_layout(xaxis=dict(tickmode='linear', dtick=1))
         
         # Exibir o gráfico no Streamlit
-        st.plotly_chart(hist_fig, use_container_width=True)
+        st.plotly_chart(hist_fig, use_container_width=True, key="hist_duracao")
 
     consultores_names = {
         '2016 (3231420318 - Victor Corrêa)' : 'Victor C',
@@ -323,14 +330,14 @@ with tab2:
     }
 
     # Gera o gráfico principal
-    filtered_data_consultores['Data'] = filtered_data_consultores['connect_time'].dt.date
+    filtered_data_consultores['Data'] = filtered_data_consultores['Início da ligação'].dt.date
     line_data = filtered_data_consultores.groupby('Data').size().reset_index(name='counts')
     line_fig = px.line(line_data, x='Data', y='counts', markers=True, title='Número de Ligações ao Longo do Tempo')
 
     # Adiciona as linhas de cada consultor com o nome simplificado na legenda
     if selected_sdr == "Visão Geral":
         for consultor in consultores:
-            consultor_data = filtered_data_consultores[filtered_data_consultores['CLI'] == consultor]
+            consultor_data = filtered_data_consultores[filtered_data_consultores['Usuário'] == consultor]
             consultor_line_data = consultor_data.groupby('Data').size().reset_index(name='counts')
             if not consultor_line_data.empty:  # Adiciona apenas se houver dados
                 line_fig.add_scatter(
@@ -341,17 +348,17 @@ with tab2:
                 )
 
     # Renderiza o gráfico no Streamlit
-    st.plotly_chart(line_fig, use_container_width=True)
+    st.plotly_chart(line_fig, use_container_width=True, key="line_fig")
 
     st.dataframe(filtered_data_consultores)
 
 with tab3:
-    filtered_data_trainees = filtered_data.loc[filtered_data['CLI'].isin(trainees)]
+    filtered_data_trainees = filtered_data.loc[filtered_data['Usuário'].isin(trainees)]
     cols_grafs = st.columns(2)
 
     with cols_grafs[0].container():
         # Obter contagem de valores e ordenar em ordem decrescente
-        trainee_counts = filtered_data_trainees['CLI'].value_counts().sort_values(ascending=True)
+        trainee_counts = filtered_data_trainees['Usuário'].value_counts().sort_values(ascending=True)
         
         df_trainee = trainee_counts.reset_index()
         df_trainee.columns = ['trainee', 'Número de Ligações']
@@ -390,7 +397,7 @@ with tab3:
 
     with cols_grafs[1].container():
         # Converter o tempo para horas decimais
-        filtered_data_trainees['Hora'] = filtered_data_trainees['connect_time'].dt.hour + filtered_data_trainees['connect_time'].dt.minute / 60
+        filtered_data_trainees['Hora'] = filtered_data_trainees['Início da ligação'].dt.hour + filtered_data_trainees['Início da ligação'].dt.minute / 60
         
         # Criar o histograma com os valores exibidos em cada barra
         hist_fig = px.histogram(
@@ -411,7 +418,7 @@ with tab3:
         hist_fig.update_layout(xaxis=dict(tickmode='linear', dtick=1))
         
         # Exibir o gráfico no Streamlit
-        st.plotly_chart(hist_fig, use_container_width=True)
+        st.plotly_chart(hist_fig, use_container_width=True, key="hist_duração2")
 
     trainees_names = {
         '2024 (3231420114 - Gabriel Soares)': 'Gabriel Soares',
@@ -423,14 +430,14 @@ with tab3:
     }
 
     # Gera o gráfico principal
-    filtered_data_trainees['Data'] = filtered_data_trainees['connect_time'].dt.date
+    filtered_data_trainees['Data'] = filtered_data_trainees['Início da ligação'].dt.date
     line_data = filtered_data_trainees.groupby('Data').size().reset_index(name='counts')
     line_fig = px.line(line_data, x='Data', y='counts', markers=True, title='Número de Ligações ao Longo do Tempo')
 
     # Adiciona as linhas de cada trainee com o nome simplificado na legenda
     if selected_sdr == "Visão Geral":
         for trainee in trainees:
-            trainee_data = filtered_data_trainees[filtered_data_trainees['CLI'] == trainee]
+            trainee_data = filtered_data_trainees[filtered_data_trainees['Usuário'] == trainee]
             trainee_line_data = trainee_data.groupby('Data').size().reset_index(name='counts')
             if not trainee_line_data.empty:  # Adiciona apenas se houver dados
                 line_fig.add_scatter(
@@ -441,6 +448,6 @@ with tab3:
                 )
 
     # Renderiza o gráfico no Streamlit
-    st.plotly_chart(line_fig, use_container_width=True)
+    st.plotly_chart(line_fig, use_container_width=True, key="line_fig2")
 
     st.dataframe(filtered_data_trainees)

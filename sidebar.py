@@ -24,7 +24,7 @@ def setup_sidebar():
             st.page_link("pages/3_time_bravo.py", label="⚔️ Time Bravo")
             st.page_link("pages/4_time_fenix.py", label="🐦 Time Fenix")
             st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls")
-            st.page_link("pages/5_Espec.py", label="👀 Visão de Espectador")
+            #st.page_link("pages/5_Espec.py", label="👀 Visão de Espectador")
 
         # Se for líder, exibe apenas sua página e a de espectador
         elif st.session_state.user_type == "líder":
@@ -35,7 +35,7 @@ def setup_sidebar():
             elif st.session_state.team == "time_bulls":
                 st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls")
 
-            st.page_link("pages/5_Espec.py", label="👀 Visão de Espectador")
+            #st.page_link("pages/5_Espec.py", label="👀 Visão de Espectador")
 
         # Botão de Logout corrigido
         if st.button("Sair"):

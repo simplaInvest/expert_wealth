@@ -4,6 +4,9 @@ import os
 import datetime
 from datetime import date, timedelta, datetime
 import pandas as pd # type: ignore
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import streamlit as st
 
 def load_calls(start_date, end_date):
     # API  
@@ -129,3 +132,45 @@ def get_last_30_days_data():
     df = format_data(load_calls(start_date.strftime('%Y-%m-%d %H:%M:%S'),
                       end_date.strftime('%Y-%m-%d %H:%M:%S')))
     return df
+
+def carregar_planilha(sheet_url: str, nome_aba: str = "Página1"):
+    if "df_chamadas" not in st.session_state:
+        # Autenticação com o Google Sheets
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        credentials_dict = st.secrets["gcp_service_account"]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
+        client = gspread.authorize(creds)
+
+        # Acessa a planilha e aba
+        sheet = client.open_by_url(sheet_url)
+        aba = sheet.worksheet(nome_aba)
+
+        # Converte para DataFrame
+        data = aba.get_all_records()
+        df = pd.DataFrame(data)
+
+        # Armazena no session_state
+        st.session_state.df_chamadas = df
+
+    return st.session_state.df_chamadas
+
+def preparar_dataframe(df):
+    # Convertendo colunas de data e hora com vírgula
+    df["Início da ligação"] = pd.to_datetime(df["Início da ligação"], format="%d/%m/%Y, %H:%M:%S", errors="coerce")
+    df["Fim da ligação"] = pd.to_datetime(df["Fim da ligação"], format="%d/%m/%Y, %H:%M:%S", errors="coerce")
+    df["Atualizado em"] = pd.to_datetime(df["Atualizado em"], format="%d/%m/%Y, %H:%M:%S", errors="coerce")
+
+    df["Data"] = pd.to_datetime(df["Data"], dayfirst=True, errors="coerce").dt.date
+    df["Hora"] = pd.to_datetime(df["Hora"], format="%H:%M:%S", errors="coerce").dt.time
+
+    # Convertendo duração da planilha para timedelta (opcional)
+    df["Tempo da ligação"] = pd.to_timedelta(df["Tempo da ligação"], errors="coerce")
+
+    # Calculando a duração real com base nas datas
+    df["call_time"] = df["Fim da ligação"] - df["Início da ligação"]
+
+    # Extraindo nome do operador de "Usuário"
+    df["Operador"] = df["Usuário"].str.extract(r"-\s*(.+?)\)$")
+
+    return df
+

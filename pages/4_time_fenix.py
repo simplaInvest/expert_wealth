@@ -38,6 +38,8 @@ else:
     st.warning("Acesso negado.")
     st.switch_page("main.py")
 
+df_ligacoes = st.session_state.get("df_chamadas")
+
 # Carrega os dados e formata
 cols_filters = st.columns(3)
 
@@ -62,16 +64,15 @@ with cols_filters[0]:
     else:
         st.warning("Por favor, selecione um intervalo válido.")
 
-    # Atualiza os dados ao carregar ou atualizar
-    @st.cache_data(ttl=15 * 60)
-    def get_filtered_data(start_date, end_date):
-        raw_data = load_calls(start_date, end_date)
-        if raw_data.empty:
-            return st.warning('Não há chamadas no período selecionado')
-        else:
-            return format_data(raw_data)
+    # Filtra o DataFrame com base nas datas selecionadas
+    filtered_data = df_ligacoes[
+        (df_ligacoes["Início da ligação"] >= start_date) &
+        (df_ligacoes["Início da ligação"] <= end_date)
+    ]
 
-    filtered_data = get_filtered_data(start_date, end_date)
+    st.write(f"Exibindo {len(filtered_data)} chamadas entre {start_date.date()} e {end_date.date()}")
+    
+
 
 # filtrar somente os membros do time
 col_to_filter = [
@@ -82,7 +83,7 @@ col_to_filter = [
         '2015 (3231420113 - Marlon Mendes)'
     ]
 
-filtered_data = filtered_data.loc[filtered_data['CLI'].isin(col_to_filter)]
+filtered_data = filtered_data.loc[filtered_data['Usuário'].isin(col_to_filter)]
 
 with cols_filters[1]:
     sdrs_dict = {
@@ -99,11 +100,11 @@ with cols_filters[1]:
     selected_sdr_name = st.selectbox("Escolha um SDR", sdr_name, help="Escolha o SDR que quer analisar")
 
     if selected_sdr_name != "Visão Geral":
-        # Obtém a chave (CLI) correspondente ao nome escolhido
+        # Obtém a chave (Usuário) correspondente ao nome escolhido
         selected_sdr = next(cli for cli, name in sdrs_dict.items() if name == selected_sdr_name)
         
-        # Filtra os dados com base no CLI correspondente
-        filtered_data = filtered_data[filtered_data['CLI'] == selected_sdr]
+        # Filtra os dados com base no Usuário correspondente
+        filtered_data = filtered_data[filtered_data['Usuário'] == selected_sdr]
 
 with cols_filters[2]:
     duration_options = ["Todos", "Zero", "Menos de 1 min", "Mais de 1 min", "Mais de 2 min"]
@@ -130,7 +131,7 @@ cols_grafs = st.columns(2)
 
 with cols_grafs[0].container():
     # Obter contagem de valores e ordenar em ordem decrescente
-    sdr_counts = filtered_data['CLI'].value_counts().sort_values(ascending=True)
+    sdr_counts = filtered_data['Usuário'].value_counts().sort_values(ascending=True)
     
     df_sdr = sdr_counts.reset_index()
     df_sdr.columns = ['SDR', 'Número de Ligações']
@@ -169,7 +170,7 @@ with cols_grafs[0].container():
 
 with cols_grafs[1].container():
     # Converter o tempo para horas decimais
-    filtered_data['Hora'] = filtered_data['connect_time'].dt.hour + filtered_data['connect_time'].dt.minute / 60
+    filtered_data['Hora'] = filtered_data['Início da ligação'].dt.hour + filtered_data['Início da ligação'].dt.minute / 60
     
     # Criar o histograma com os valores exibidos em cada barra
     hist_fig = px.histogram(
@@ -193,14 +194,14 @@ with cols_grafs[1].container():
     st.plotly_chart(hist_fig, use_container_width=True)
 
 # Gera o gráfico principal
-filtered_data['Data'] = filtered_data['connect_time'].dt.date
+filtered_data['Data'] = filtered_data['Início da ligação'].dt.date
 line_data = filtered_data.groupby('Data').size().reset_index(name='counts')
 line_fig = px.line(line_data, x='Data', y='counts', markers=True, title='Número de Ligações ao Longo do Tempo')
 
 # Adiciona as linhas de cada SDR com o nome simplificado na legenda
 if selected_sdr_name == "Visão Geral":
     for sdr in col_to_filter:
-        sdr_data = filtered_data[filtered_data['CLI'] == sdr]
+        sdr_data = filtered_data[filtered_data['Usuário'] == sdr]
         sdr_line_data = sdr_data.groupby('Data').size().reset_index(name='counts')
         if not sdr_line_data.empty:  # Adiciona apenas se houver dados
             line_fig.add_scatter(
