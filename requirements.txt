@@ -5,6 +5,5 @@ plotly
 matplotlib
 gspread
 oauth2client
-random
 datetime
 timedelta
