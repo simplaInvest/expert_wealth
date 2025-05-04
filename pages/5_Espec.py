@@ -21,14 +21,6 @@ st.title("Modo Espectador")
 st.write("Bem-vindo ao modo espectador do Dashboard.")
 
 ###########################################################################################################
-# Carregar dados
-
-if st.button("Limpar Cache"):
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    st.success("Cache limpo! Recarregue os dados.")
-
-filtered_data = get_last_30_days_data()
 
 ###########################################################################################################
 

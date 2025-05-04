@@ -133,26 +133,26 @@ def get_last_30_days_data():
                       end_date.strftime('%Y-%m-%d %H:%M:%S')))
     return df
 
-def carregar_planilha(sheet_url: str, nome_aba: str = "Página1"):
-    if "df_chamadas" not in st.session_state:
-        # Autenticação com o Google Sheets
+def carregar_planilha(df_name, sheet_url: str, nome_aba: str = "Página1"):
+    if df_name not in st.session_state:
+        # Autenticação
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         credentials_dict = st.secrets["gcp_service_account"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
         client = gspread.authorize(creds)
 
-        # Acessa a planilha e aba
+        # Acesso à aba
         sheet = client.open_by_url(sheet_url)
         aba = sheet.worksheet(nome_aba)
 
-        # Converte para DataFrame
+        # DataFrame
         data = aba.get_all_records()
         df = pd.DataFrame(data)
 
-        # Armazena no session_state
-        st.session_state.df_chamadas = df
+        # Armazenamento correto usando colchetes
+        st.session_state[df_name] = df
 
-    return st.session_state.df_chamadas
+    return st.session_state[df_name]
 
 def preparar_dataframe(df):
     # Convertendo colunas de data e hora com vírgula
@@ -173,4 +173,28 @@ def preparar_dataframe(df):
     df["Operador"] = df["Usuário"].str.extract(r"-\s*(.+?)\)$")
 
     return df
+
+def adicionar_time(df_name, df_evento, df_metas):
+    # Faz merge com base no nome
+    df_times = df_metas[["CONSULTOR", "TIME"]].drop_duplicates()
+    df_merged = df_evento.merge(df_times, on="CONSULTOR", how="left")
+
+    # Remove linhas sem TIME
+    df_merged = df_merged.dropna(subset=["TIME"])
+
+    # Atualiza o session_state
+    st.session_state[df_name] = df_merged
+
+    return df_merged
+
+def calcular_taxas(valores_dict):
+    etapas = list(valores_dict.items())
+    taxas = []
+    for i in range(len(etapas)-1):
+        atual = etapas[i][1]
+        proximo = etapas[i+1][1]
+        taxa = (proximo / atual * 100) if atual > 0 else 0
+        taxas.append(f"{taxa:.2f}%")
+    return taxas
+
 
