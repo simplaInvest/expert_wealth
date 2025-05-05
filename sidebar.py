@@ -20,11 +20,11 @@ def setup_sidebar():
 
         # Se for admin, exibe todas as páginas
         if st.session_state.user_type == "admin":
+            st.page_link("pages/0_Metrics.py", label = '🔻 Métricas funil')
             st.page_link("pages/1_Admin.py", label="🔧 Admin")
             st.page_link("pages/3_time_bravo.py", label="⚔️ Time Bravo")
             st.page_link("pages/4_time_fenix.py", label="🐦 Time Fenix")
             st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls")
-            st.page_link("pages/0_Metrics.py", label = '')
             #st.page_link("pages/5_Espec.py", label="👀 Visão de Espectador")
 
         # Se for líder, exibe apenas sua página e a de espectador

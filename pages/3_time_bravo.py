@@ -39,7 +39,7 @@ else:
     st.warning("Acesso negado.")
     st.switch_page("main.py")
 
-df_ligacoes = st.session_state.get("df_chamadas")
+df_ligacoes = st.session_state.get("df_ligacoes")
 
 # Carrega os dados e formata
 cols_filters = st.columns(3)

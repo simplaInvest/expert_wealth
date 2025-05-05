@@ -53,7 +53,7 @@ if st.button("Limpar Tudo"):
 df_ligacoes = st.session_state.get("df_ligacoes")
 df_rmarcadas = st.session_state.get("df_rmarcadas")
 df_rrealizadas = st.session_state.get("df_rrealizadas")
-df_cenviados = st.session_state.get("df_cenviados")
+#df_cenviados = st.session_state.get("df_cenviados")
 df_cassinados = st.session_state.get("df_cassinados")
 df_metas_individuais = st.session_state.get("df_metas_individuais")
 #df_metas_niveis = st.session_state.get("df_metas_niveis")
@@ -72,7 +72,7 @@ col_filtros = st.columns([2, 1, 2])  # [segmentação, período]
 # Cópias filtradas dos DataFrames
 df_rmarcadas_filtrado = df_rmarcadas.copy()
 df_rrealizadas_filtrado = df_rrealizadas.copy()
-df_cenviados_filtrado = df_cenviados.copy()
+#df_cenviados_filtrado = df_cenviados.copy()
 df_cassinados_filtrado = df_cassinados.copy()
 
 # 1. Filtro de Período com fundo cinza claro
@@ -97,7 +97,7 @@ if segmentacao == "Time":
         
         df_rmarcadas_filtrado = df_rmarcadas[df_rmarcadas["TIME"] == time_selecionado]
         df_rrealizadas_filtrado = df_rrealizadas[df_rrealizadas["TIME"] == time_selecionado]
-        df_cenviados_filtrado = df_cenviados[df_cenviados["TIME"] == time_selecionado]
+        #df_cenviados_filtrado = df_cenviados[df_cenviados["TIME"] == time_selecionado]
         df_cassinados_filtrado = df_cassinados[df_cassinados["TIME"] == time_selecionado]
 
 elif segmentacao == "Consultor":
@@ -107,7 +107,7 @@ elif segmentacao == "Consultor":
 
         df_rmarcadas_filtrado = df_rmarcadas[df_rmarcadas["CONSULTOR"] == consultor_selecionado]
         df_rrealizadas_filtrado = df_rrealizadas[df_rrealizadas["CONSULTOR"] == consultor_selecionado]
-        df_cenviados_filtrado = df_cenviados[df_cenviados["CONSULTOR"] == consultor_selecionado]
+        #df_cenviados_filtrado = df_cenviados[df_cenviados["CONSULTOR"] == consultor_selecionado]
         df_cassinados_filtrado = df_cassinados[df_cassinados["CONSULTOR"] == consultor_selecionado]
 
 st.divider()
@@ -123,12 +123,12 @@ meta = 30
 valores = {
     "Reuniões Marcadas": len(df_rmarcadas_filtrado),
     "Reuniões Realizadas": len(df_rrealizadas_filtrado),
-    "Contratos Enviados": len(df_cenviados_filtrado),
+    #"Contratos Enviados": len(df_cenviados_filtrado),
     "Contratos Assinados": len(df_cassinados_filtrado)
 }
 
 # Layout com espaçamento: 4 colunas de gráficos + 3 colunas de espaço
-cols = st.columns([1, 0.1, 1, 0.1, 1, 0.1, 1])  # Total de 7 colunas
+cols = st.columns([1, 0.1, 1, 0.1, 1])  
 
 for idx, (nome, valor) in enumerate(valores.items()):
     col_index = idx * 2  # 0, 2, 4, 6
@@ -222,7 +222,7 @@ with cols_funnel[3]:
 
     st.markdown(
         f"""
-        <div style="margin-top: 10rem; background-color:#f0f0f0; border-radius:10px; 
+        <div style="margin-top: 7.5rem; background-color:#f0f0f0; border-radius:10px; 
                     padding:1rem; text-align:center; border: 1px solid #ccc;">
             <div style="font-size: 30px; font-weight: bold; color: #388e3c;">
                 {conv_final:.2f}%
@@ -242,12 +242,19 @@ with cols_funnel[3]:
 cols_grafs = st.columns([6,2,13])
 
 with cols_grafs[0]:
-    # 1. Lista de consultores
-    consultores = df_metas_individuais["CONSULTOR"].dropna().unique()
+    # 1. Define consultores com base na segmentação
+    if segmentacao == "Geral":
+        consultores_filtrados = df_metas_individuais["CONSULTOR"].dropna().unique()
+    elif segmentacao == "Time":
+        consultores_filtrados = df_metas_individuais[
+            df_metas_individuais["TIME"] == time_selecionado
+        ]["CONSULTOR"].dropna().unique()
+    elif segmentacao == "Consultor":
+        consultores_filtrados = [consultor_selecionado]
 
     # 2. Gera valores fakes
     random.seed(42)
-    valores_fake = {nome: random.randint(100_000, 3_000_000) for nome in consultores}
+    valores_fake = {nome: random.randint(100_000, 3_000_000) for nome in consultores_filtrados}
 
     # 3. Cria DataFrame e seleciona Top 10
     df_ranking = pd.DataFrame(list(valores_fake.items()), columns=["Consultor", "Valor"])
@@ -286,7 +293,7 @@ with cols_grafs[2]:
     metricas = {
         "RM": "Reuniões Marcadas",
         "RR": "Reuniões Realizadas",
-        "CE": "Contratos Enviados",
+        #"CE": "Contratos Enviados",
         "CA": "Contratos Assinados"
     }
 
@@ -360,7 +367,7 @@ with cols_grafs[2]:
 
     # 5. Layout final
     fig.update_layout(
-        title="Realizado x Meta - Reuniões Marcadas",
+        title="Realizado x Meta - Reuniões Marcadas (Dados Fake)",
         xaxis_title="Data",
         yaxis_title="Quantidade",
         height=500,
@@ -390,32 +397,53 @@ with cols_tabelas[0]:
     with st.container(border=True):
         st.markdown(f"### Origem dos leads")
         cols_1 = st.columns([1,2])
+
         with cols_1[0]:
             # 1. Radio para seleção da métrica
             metrica_origem = st.radio("Selecione a etapa do funil:", [
                 "Reuniões Marcadas",
                 "Reuniões Realizadas",
-                "Contratos Enviados",
+                #"Contratos Enviados",
                 "Contratos Assinados"
             ])
 
-            # 2. Mapeia a seleção para o dataframe correspondente
+            # 2. Mapeia seleção para dataframe correspondente
             df_map = {
                 "Reuniões Marcadas": df_rmarcadas_filtrado,
                 "Reuniões Realizadas": df_rrealizadas_filtrado,
-                "Contratos Enviados": df_cenviados_filtrado,
+                # "Contratos Enviados": df_cenviados_filtrado,
                 "Contratos Assinados": df_cassinados_filtrado
             }
 
             df_origem = df_map[metrica_origem]
 
-            # 3. Conta os leads por origem e ordena
+            # 3. Conta leads por origem da etapa selecionada
             tabela_origens = (
-            df_origem["ORIGEM"]
-            .value_counts()
-            .rename_axis("Origem")
-            .to_frame(name="Quantidade")
+                df_origem["ORIGEM"]
+                .value_counts()
+                .rename_axis("Origem")
+                .to_frame(name="Quantidade")
             )
+
+            # 4. Se a métrica for anterior a Contratos Assinados, calcula conversão
+            if metrica_origem != "Contratos Assinados":
+                # Base de contratos assinados por origem
+                assinados_por_origem = (
+                    df_cassinados_filtrado["ORIGEM"]
+                    .value_counts()
+                    .rename_axis("Origem")
+                    .to_frame(name="Assinados")
+                )
+
+                # Junta com a tabela de leads e calcula conversão
+                tabela_origens = tabela_origens.join(assinados_por_origem, how="left")
+                tabela_origens["Assinados"] = tabela_origens["Assinados"].fillna(0)
+                tabela_origens["Conversão"] = (
+                    tabela_origens["Assinados"] / tabela_origens["Quantidade"]
+                ).apply(lambda x: f"{x:.1%}" if x > 0 else "0%")
+
+                # Remove coluna auxiliar
+                tabela_origens = tabela_origens.drop(columns=["Assinados"])
 
         with cols_1[1]:
             # 4. Exibe a tabela

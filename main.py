@@ -23,17 +23,31 @@ st.sidebar.empty()
 def main():
     # Centraliza a logo
     col1, col2, col3 = st.columns([1,1,1])
-    with col2:
-        st.image("path_to_logo.png", use_container_width=True)  # Substitua pelo caminho correto da logo
-    
-    st.title("Expert Comercial Wealth")
+    # Detecta o tema atual
+    tema = st.get_option("theme.base")
 
-    # Formulário de Login'
-    with st.form("login_form"):
-        st.subheader("Acesso ao Dashboard")
-        username = st.text_input("Nome", placeholder="Digite seu nome")
-        password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
-        login_button = st.form_submit_button("Entrar")
+    # Define caminho da logo com base no tema
+    logo_path = "z_logo_dark.png" if tema == "light" else "z_logo_light.png"
+
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.image(logo_path, use_container_width=True) # Substitua pelo caminho correto da logo
+    
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        st.title("Expert Comercial Wealth")
+
+        # Formulário de Login'
+        with st.form("login_form"):
+            st.subheader("Acesso ao Dashboard")
+            username = st.text_input("Nome", placeholder="Digite seu nome")
+            password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+            login_button = st.form_submit_button("Entrar")
 
     sheet_url = "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing"
     aba_lig = "LIGACOES"
@@ -75,11 +89,11 @@ def main():
             except Exception as e:
                 planilhas_com_erro.append(f"R.REALIZADAS: {e}")
             
-            try:
-                df_cenviados = carregar_planilha('df_cenviados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ENVIADOS')
-                df_ccenviados = adicionar_time('df_cenviados',df_cenviados, df_metas_individuais)
-            except Exception as e:
-                planilhas_com_erro.append(f"C.ENVIADOS: {e}")
+            # try:
+            #     df_cenviados = carregar_planilha('df_cenviados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ENVIADOS')
+            #     df_ccenviados = adicionar_time('df_cenviados',df_cenviados, df_metas_individuais)
+            # except Exception as e:
+            #     planilhas_com_erro.append(f"C.ENVIADOS: {e}")
             
             try:
                 df_cassinados = carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS')

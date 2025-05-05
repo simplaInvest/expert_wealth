@@ -27,6 +27,8 @@ if "authenticated" not in st.session_state or not st.session_state.authenticated
 # Chama a sidebar
 setup_sidebar()
 
+
+
 if st.button("Limpar Tudo"):
     # Limpa o cache
     st.cache_data.clear()
@@ -38,7 +40,7 @@ if st.button("Limpar Tudo"):
 
     st.success("Cache e estado da sessão limpos! Recarregue os dados.")
 
-df_ligacoes = st.session_state.get("df_chamadas")
+df_ligacoes = st.session_state.get("df_ligacoes")
 
 # Carrega os dados e formata
 cols_filters = st.columns(3)
@@ -48,6 +50,10 @@ with cols_filters[0]:
     # Define valores padrão: hoje e amanhã
     default_start_date = datetime.now().date()  # Hoje
     default_end_date = (datetime.now() + timedelta(days=1)).date()  # Amanhã
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # Solicita que o usuário selecione um intervalo de datas
     date_range = st.date_input(
@@ -121,6 +127,10 @@ with cols_filters[1]:
     
 
 with cols_filters[2]:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
     duration_options = ["Todos", "Zero", "Menos de 1 min", "Mais de 1 min", "Mais de 2 min"]
     selected_durations = st.multiselect("Escolha a duração das chamadas", duration_options, help="")
     
