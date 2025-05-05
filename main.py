@@ -23,18 +23,12 @@ st.sidebar.empty()
 def main():
     # Centraliza a logo
     col1, col2, col3 = st.columns([1,1,1])
-    # Detecta o tema atual
-    tema = st.get_option("theme.base")
-
-    # Define caminho da logo com base no tema
-    logo_path = "z_logo_dark.png" if tema == "light" else "z_logo_light.png"
-
     with col2:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        st.image(logo_path, use_container_width=True) # Substitua pelo caminho correto da logo
+        st.image("z_logo_dark.png", use_container_width=True) # Substitua pelo caminho correto da logo
     
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
