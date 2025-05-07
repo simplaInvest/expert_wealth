@@ -10,7 +10,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import time  # Para controle de atualização automática
-from funcs import load_calls, format_data
 
 st.set_page_config(page_title="Time Fênix", page_icon="🐦", layout="wide")
 

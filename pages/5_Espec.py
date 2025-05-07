@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import time
 from sidebar import setup_sidebar
-from funcs import load_calls, format_data, get_last_30_days_data
 
 st.set_page_config(page_title="Espectador", page_icon="👀", layout='wide')
 

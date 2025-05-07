@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import time  # Para controle de atualização automática
 
-from funcs import load_calls, format_data, preparar_dataframe, carregar_planilha
+from funcs import preparar_dataframe, carregar_planilha
 from sidebar import setup_sidebar
 
 ##############################
