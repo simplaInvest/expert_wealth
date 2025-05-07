@@ -57,6 +57,7 @@ df_rrealizadas = st.session_state.get("df_rrealizadas")
 df_cassinados = st.session_state.get("df_cassinados")
 df_metas_individuais = st.session_state.get("df_metas_individuais")
 #df_metas_niveis = st.session_state.get("df_metas_niveis")
+df_captação = st.session_state.get("df_captação")
 
 #########################################################
 ##                  Início do Layout                   ##
@@ -81,11 +82,36 @@ with col_filtros[0]:
         st.write('Selecione o período')
         col1, col2 = st.columns(2)
         with col1:
-            data_inicio = st.date_input("Data inicial", date.today() - timedelta(days=30))
+            data_inicio = st.date_input("Data inicial", date.today() - timedelta(days=1))
         with col2:
             data_fim = st.date_input("Data final", date.today())
 
         st.markdown("</div>", unsafe_allow_html=True)
+
+    dias_selecionados = (data_fim - data_inicio).days + 1  # Inclui a data final
+
+    # Converte as colunas "DATA" para datetime.date corretamente
+    for df in [df_rmarcadas_filtrado, df_rrealizadas_filtrado, df_cassinados_filtrado]:
+        if df["DATA"].dtype == object:
+            df["DATA"] = pd.to_datetime(df["DATA"], format="%d/%m/%Y", errors="coerce").dt.date
+        else:
+            df["DATA"] = pd.to_datetime(df["DATA"]).dt.date
+
+    # Aplica o filtro de data em cada DataFrame
+    df_rmarcadas_filtrado = df_rmarcadas_filtrado[
+        (df_rmarcadas_filtrado["DATA"] >= data_inicio) & 
+        (df_rmarcadas_filtrado["DATA"] <= data_fim)
+    ]
+
+    df_rrealizadas_filtrado = df_rrealizadas_filtrado[
+        (df_rrealizadas_filtrado["DATA"] >= data_inicio) & 
+        (df_rrealizadas_filtrado["DATA"] <= data_fim)
+    ]
+
+    df_cassinados_filtrado = df_cassinados_filtrado[
+        (df_cassinados_filtrado["DATA"] >= data_inicio) & 
+        (df_cassinados_filtrado["DATA"] <= data_fim)
+    ]
 
 # 1. Filtro de Segmentação
 with col_filtros[1]:
@@ -95,20 +121,30 @@ if segmentacao == "Time":
     with col_filtros[2]:
         time_selecionado = st.selectbox("Selecione o time:", ["TEAM BRAVO", "TEAM ANYWHERE", "TEAM FARMER"])
         
-        df_rmarcadas_filtrado = df_rmarcadas[df_rmarcadas["TIME"] == time_selecionado]
-        df_rrealizadas_filtrado = df_rrealizadas[df_rrealizadas["TIME"] == time_selecionado]
+        df_rmarcadas_filtrado = df_rmarcadas_filtrado[df_rmarcadas_filtrado["TIME"] == time_selecionado]
+        df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["TIME"] == time_selecionado]
         #df_cenviados_filtrado = df_cenviados[df_cenviados["TIME"] == time_selecionado]
-        df_cassinados_filtrado = df_cassinados[df_cassinados["TIME"] == time_selecionado]
+        df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["TIME"] == time_selecionado]
 
 elif segmentacao == "Consultor":
     with col_filtros[2]:
         consultores = df_metas_individuais["CONSULTOR"].dropna().unique()
         consultor_selecionado = st.selectbox("Selecione o consultor:", sorted(consultores))
 
-        df_rmarcadas_filtrado = df_rmarcadas[df_rmarcadas["CONSULTOR"] == consultor_selecionado]
-        df_rrealizadas_filtrado = df_rrealizadas[df_rrealizadas["CONSULTOR"] == consultor_selecionado]
+        df_rmarcadas_filtrado = df_rmarcadas_filtrado[df_rmarcadas_filtrado["CONSULTOR"] == consultor_selecionado]
+        df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["CONSULTOR"] == consultor_selecionado]
         #df_cenviados_filtrado = df_cenviados[df_cenviados["CONSULTOR"] == consultor_selecionado]
-        df_cassinados_filtrado = df_cassinados[df_cassinados["CONSULTOR"] == consultor_selecionado]
+        df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["CONSULTOR"] == consultor_selecionado]
+
+# 2. Determina os consultores filtrados
+if segmentacao == "Geral":
+    consultores_filtrados = df_metas_individuais["CONSULTOR"].dropna().unique()
+elif segmentacao == "Time":
+    consultores_filtrados = df_metas_individuais[df_metas_individuais["TIME"] == time_selecionado]["CONSULTOR"].dropna().unique()
+elif segmentacao == "Consultor":
+    consultores_filtrados = [consultor_selecionado]
+
+n_consultores = len(consultores_filtrados)
 
 st.divider()
 
@@ -116,44 +152,69 @@ st.divider()
 ##      Velocimetros        ##
 ##############################
 
-# Meta fixa
-meta = 30
-
 # Valores do funil
 valores = {
     "Reuniões Marcadas": len(df_rmarcadas_filtrado),
     "Reuniões Realizadas": len(df_rrealizadas_filtrado),
-    #"Contratos Enviados": len(df_cenviados_filtrado),
+    # "Contratos Enviados": len(df_cenviados_filtrado),
     "Contratos Assinados": len(df_cassinados_filtrado)
+}
+
+# Metas por dia por consultor
+metas_diarias = {
+    "Reuniões Marcadas": 4,
+    "Reuniões Realizadas": 3,
+    "Contratos Assinados": 1
+}
+
+# Meta acumulada = dias * meta_diária * número de consultores
+metas_acumuladas = {
+    etapa: dias_selecionados * valor_diario * n_consultores
+    for etapa, valor_diario in metas_diarias.items()
 }
 
 # Layout com espaçamento: 4 colunas de gráficos + 3 colunas de espaço
 cols = st.columns([1, 0.1, 1, 0.1, 1])  
 
+# Renderiza cada velocímetro
 for idx, (nome, valor) in enumerate(valores.items()):
-    col_index = idx * 2  # 0, 2, 4, 6
+    col_index = idx * 2  # 0, 2, 4
+    meta_atual = metas_acumuladas[nome]
+
     with cols[col_index]:
         with st.container():
             fig = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=valor,
-                title={'text': nome},
-                delta = {'reference': meta},
+                title={'text': nome, 'font': {'size': 22}},
+                delta={'reference': meta_atual},
                 gauge={
-                    'axis': {'range': [0, meta]},
-                    'bar': {'color': "lightgray"},
-                    'steps' : [
-                                {'range': [0, meta/3], 'color': "red"},
-                                {'range': [meta/3, 2*(meta/3)], 'color': "yellow"},
-                                {'range': [2*(meta/3), meta], 'color': "green"}],
+                    'axis': {'range': [0, meta_atual], 'tickwidth': 1, 'tickcolor': "gray"},
+                    'bar': {'color': "rgba(0,0,0,0)"},
+                    'steps': [
+                        {'range': [0, 0.5 * meta_atual], 'color': "#ff4d4d"},
+                        {'range': [0.5 * meta_atual, 0.8 * meta_atual], 'color': "#ffd633"},
+                        {'range': [0.8 * meta_atual, meta_atual], 'color': "#5cd65c"}
+                    ],
                     'threshold': {
-                        'line': {'color': "black", 'width': 4},
-                        'thickness': 0.75,
+                        'line': {'color': "black", 'width': 6},
+                        'thickness': 1,
                         'value': valor
                     }
                 }
             ))
+
+            st.markdown(
+                f"<div style='text-align:center; font-size:15px; margin-top:-10px;'>"
+                f"⚠️ Vermelho: até {int(0.5 * meta_atual)} &nbsp;&nbsp; "
+                f"🟡 Amarelo: até {int(0.8 * meta_atual)} &nbsp;&nbsp; "
+                f"🟢 Verde: até {int(meta_atual)}"
+                f"</div>", 
+                unsafe_allow_html=True
+            )
+
             st.plotly_chart(fig, use_container_width=True)
+
 
 ##############################
 ##          Funil           ##
@@ -222,7 +283,7 @@ with cols_funnel[3]:
 
     st.markdown(
         f"""
-        <div style="margin-top: 7.5rem; background-color:#f0f0f0; border-radius:10px; 
+        <div style="margin-top: 9rem; background-color:#f0f0f0; border-radius:10px; 
                     padding:1rem; text-align:center; border: 1px solid #ccc;">
             <div style="font-size: 30px; font-weight: bold; color: #388e3c;">
                 {conv_final:.2f}%

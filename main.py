@@ -42,10 +42,6 @@ def main():
             username = st.text_input("Nome", placeholder="Digite seu nome")
             password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
             login_button = st.form_submit_button("Entrar")
-
-    sheet_url = "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing"
-    aba_lig = "LIGACOES"
-    #aba_usu = "USUARIOS"
     
     # Verifica o login e define permissões
     if login_button:
@@ -94,6 +90,12 @@ def main():
                 df_cassinados = adicionar_time('df_cassinados',df_cassinados, df_metas_individuais)
             except Exception as e:
                 planilhas_com_erro.append(f"C.ASSINADOS: {e}")
+
+            try:
+                df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'Dashboard')
+                df_captação = adicionar_time('df_captação', df_captação, df_metas_individuais)
+            except Exception as e:
+                planilhas_com_erro.append(f"Captação: {e}")
 
             if planilhas_com_erro:
                 st.error("Erro ao carregar as seguintes planilhas:")

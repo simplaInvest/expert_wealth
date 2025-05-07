@@ -157,7 +157,7 @@ def carregar_planilha(df_name, sheet_url: str, nome_aba: str = "Página1"):
 def preparar_dataframe(df):
     # Convertendo colunas de data e hora com vírgula
     df["Início da ligação"] = pd.to_datetime(df["Início da ligação"], format="%d/%m/%Y, %H:%M:%S", errors="coerce")
-    df["Fim da ligação"] = pd.to_datetime(df["Fim da ligação"], format="%d/%m/%Y, %H:%M:%S", errors="coerce")
+    df["Fim da ligação"] = pd.to_datetime(df["Fim da ligação"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
     df["Atualizado em"] = pd.to_datetime(df["Atualizado em"], format="%d/%m/%Y, %H:%M:%S", errors="coerce")
 
     df["Data"] = pd.to_datetime(df["Data"], dayfirst=True, errors="coerce").dt.date
