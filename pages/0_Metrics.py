@@ -196,6 +196,8 @@ with col_filtros[2]:
 
 n_consultores = len(consultores_filtrados)
 
+st.divider()
+
 #########################################################################################################
 ##                                                 Funil                                               ##
 #########################################################################################################
@@ -635,7 +637,7 @@ st.plotly_chart(fig, use_container_width=True)
 ##          Tabelas         ##
 ##############################################################################
 
-cols_tabelas = st.columns([2,4])
+cols_tabelas = st.columns(2)
 with cols_tabelas[0]:
     with st.container(border=True):
         st.markdown(f"### Origem dos leads")
