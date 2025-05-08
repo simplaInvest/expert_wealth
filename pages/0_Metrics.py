@@ -584,7 +584,7 @@ df_cap_novo[["CONSULTOR", "TIME"] + colunas_meses[:3]].head()
 colunas_meses = [col for col in df_cap_novo.columns if col[:4].isdigit()]
 
 # 2. Seletores de intervalo de meses
-cols_months = st.columns([1,1,10])
+cols_months = st.columns([1,1,3])
 with cols_months[0]:
     mes_inicio = st.selectbox("Mês de início", options=sorted(colunas_meses), index=0)
 with cols_months[1]:
