@@ -24,7 +24,7 @@ def setup_sidebar():
             #st.page_link("pages/1_Admin.py", label="🔧 Admin")
             #st.page_link("pages/3_time_bravo.py", label="⚔️ Time Bravo")
             #st.page_link("pages/4_time_fenix.py", label="🐦 Time Fenix")
-            st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls")
+            st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls - Comercial GR")
             #st.page_link("pages/5_Espec.py", label="👀 Visão de Espectador")
 
         # Se for líder, exibe apenas sua página e a de espectador
