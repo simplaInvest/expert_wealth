@@ -61,11 +61,6 @@ def main():
                 df_metas_individuais = carregar_planilha('df_metas_individuais','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_individuais')
             except Exception as e:
                 planilhas_com_erro.append(f"Metas_individuais: {e}")
-            
-            #try:
-            #    df_metas_niveis = carregar_planilha('df_metas_niveis','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_por_nivel')
-            #except Exception as e:
-            #    planilhas_com_erro.append(f"Metas_por_nivel: {e}")
 
             try:
                 df_rmarcadas = carregar_planilha('df_rmarcadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.MARCADAS')
@@ -79,12 +74,6 @@ def main():
             except Exception as e:
                 planilhas_com_erro.append(f"R.REALIZADAS: {e}")
             
-            # try:
-            #     df_cenviados = carregar_planilha('df_cenviados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ENVIADOS')
-            #     df_ccenviados = adicionar_time('df_cenviados',df_cenviados, df_metas_individuais)
-            # except Exception as e:
-            #     planilhas_com_erro.append(f"C.ENVIADOS: {e}")
-            
             try:
                 df_cassinados = carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS')
                 df_cassinados = adicionar_time('df_cassinados',df_cassinados, df_metas_individuais)
@@ -92,8 +81,7 @@ def main():
                 planilhas_com_erro.append(f"C.ASSINADOS: {e}")
 
             try:
-                df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'Dashboard')
-                df_captação = adicionar_time('df_captação', df_captação, df_metas_individuais)
+                df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH')
             except Exception as e:
                 planilhas_com_erro.append(f"Captação: {e}")
 
