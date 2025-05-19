@@ -28,11 +28,6 @@ from sidebar import setup_sidebar
 
 st.set_page_config(page_title="Metrics", page_icon="🔧", layout = 'wide')
 
-# Verifica autenticação
-if "authenticated" not in st.session_state or not st.session_state.authenticated:
-    st.warning("Acesso negado. Faça login para acessar esta página.")
-    st.switch_page("main.py")
-
 # Chama a sidebar
 setup_sidebar()
 
@@ -86,7 +81,7 @@ with col_filtros[0]:
         st.markdown("<br>", unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
-            data_inicio = st.date_input("Data inicial", date.today() - timedelta(days=1))
+            data_inicio = st.date_input("Data inicial", date.today() - timedelta(days=date.today().weekday() + 1) if date.today().weekday() != 6 else date.today())
         with col2:
             data_fim = st.date_input("Data final", date.today())
 
@@ -223,16 +218,10 @@ valores = {
 }
 
 # Metas por dia por consultor
-metas_mensais = {
-    "Reuniões Marcadas": 40,
-    "Reuniões Realizadas": 28,
-    "Contratos Assinados": 7
-}
-
-metas_diarias = {
-    "Reuniões Marcadas": 4,
-    "Reuniões Realizadas": 2,
-    "Contratos Assinados": 1
+metas_semanais = {
+    "Reuniões Marcadas": 10,
+    "Reuniões Realizadas": 7,
+    "Contratos Assinados": 2
 }
 
 multiplicador_mes = mes_fim - mes_inicio + 1
@@ -240,8 +229,9 @@ multiplicador_mes = mes_fim - mes_inicio + 1
 # Meta acumulada = dias * meta_diária * número de consultores
 metas_acumuladas = {
     etapa: multiplicador_mes * valor_mensal * n_consultores
-    for etapa, valor_mensal in metas_mensais.items()
+    for etapa, valor_mensal in metas_semanais.items()
 }
+
 # Layout com espaçamento: 4 colunas de gráficos + 3 colunas de espaço
 cols = st.columns([1, 0.1, 1, 0.1, 1, 0.1, 1])  
 
@@ -250,7 +240,7 @@ with cols[0]:
     valor = df_ligacoes_filtered.shape[0]
 
     # Meta: dias úteis * 100 ligações por consultor * número de consultores
-    meta_atual = multiplicador_mes * 22 * 100 * n_consultores 
+    meta_atual = multiplicador_mes * 5 * 100 * n_consultores 
 
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
@@ -273,17 +263,6 @@ with cols[0]:
             }
         }
     ))
-
-    # Legenda visual
-    st.markdown(
-        f"<div style='text-align:center; font-size:15px; margin-top:-10px;'>"
-        f"⚠️ Vermelho: até {int(0.5 * meta_atual)} &nbsp;&nbsp; "
-        f"🟡 Amarelo: até {int(0.8 * meta_atual)} &nbsp;&nbsp; "
-        f"🟢 Verde: até {int(meta_atual)}"
-        f"</div>", 
-        unsafe_allow_html=True
-    )
-
     st.plotly_chart(fig, use_container_width=True)
 
 # Renderiza cada velocímetro
@@ -313,15 +292,6 @@ for idx, (nome, valor) in enumerate(valores.items()):
                     }
                 }
             ))
-
-            st.markdown(
-                f"<div style='text-align:center; font-size:15px; margin-top:-10px;'>"
-                f"⚠️ Vermelho: até {int(0.5 * meta_atual)} &nbsp;&nbsp; "
-                f"🟡 Amarelo: até {int(0.8 * meta_atual)} &nbsp;&nbsp; "
-                f"🟢 Verde: até {int(meta_atual)}"
-                f"</div>", 
-                unsafe_allow_html=True
-            )
 
             st.plotly_chart(fig, use_container_width=True)
 

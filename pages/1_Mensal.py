@@ -26,12 +26,7 @@ from sidebar import setup_sidebar
 ##                           Autenticação e cache                           ##
 ##############################################################################
 
-st.set_page_config(page_title="Metrics", page_icon="🔧", layout = 'wide')
-
-# Verifica autenticação
-if "authenticated" not in st.session_state or not st.session_state.authenticated:
-    st.warning("Acesso negado. Faça login para acessar esta página.")
-    st.switch_page("main.py")
+st.set_page_config(page_title="Mensal", page_icon="📅", layout = 'wide')
 
 # Chama a sidebar
 setup_sidebar()
@@ -86,7 +81,7 @@ with col_filtros[0]:
         st.markdown("<br>", unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
-            data_inicio = st.date_input("Data inicial", date.today() - timedelta(days=1))
+            data_inicio = st.date_input("Data inicial", date.today().replace(day=1))
         with col2:
             data_fim = st.date_input("Data final", date.today())
 
@@ -229,12 +224,6 @@ metas_mensais = {
     "Contratos Assinados": 7
 }
 
-metas_diarias = {
-    "Reuniões Marcadas": 4,
-    "Reuniões Realizadas": 2,
-    "Contratos Assinados": 1
-}
-
 multiplicador_mes = mes_fim - mes_inicio + 1
 
 # Meta acumulada = dias * meta_diária * número de consultores
@@ -242,6 +231,7 @@ metas_acumuladas = {
     etapa: multiplicador_mes * valor_mensal * n_consultores
     for etapa, valor_mensal in metas_mensais.items()
 }
+
 # Layout com espaçamento: 4 colunas de gráficos + 3 colunas de espaço
 cols = st.columns([1, 0.1, 1, 0.1, 1, 0.1, 1])  
 
@@ -273,17 +263,6 @@ with cols[0]:
             }
         }
     ))
-
-    # Legenda visual
-    st.markdown(
-        f"<div style='text-align:center; font-size:15px; margin-top:-10px;'>"
-        f"⚠️ Vermelho: até {int(0.5 * meta_atual)} &nbsp;&nbsp; "
-        f"🟡 Amarelo: até {int(0.8 * meta_atual)} &nbsp;&nbsp; "
-        f"🟢 Verde: até {int(meta_atual)}"
-        f"</div>", 
-        unsafe_allow_html=True
-    )
-
     st.plotly_chart(fig, use_container_width=True)
 
 # Renderiza cada velocímetro
@@ -313,15 +292,6 @@ for idx, (nome, valor) in enumerate(valores.items()):
                     }
                 }
             ))
-
-            st.markdown(
-                f"<div style='text-align:center; font-size:15px; margin-top:-10px;'>"
-                f"⚠️ Vermelho: até {int(0.5 * meta_atual)} &nbsp;&nbsp; "
-                f"🟡 Amarelo: até {int(0.8 * meta_atual)} &nbsp;&nbsp; "
-                f"🟢 Verde: até {int(meta_atual)}"
-                f"</div>", 
-                unsafe_allow_html=True
-            )
 
             st.plotly_chart(fig, use_container_width=True)
 

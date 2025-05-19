@@ -1,5 +1,5 @@
 import streamlit as st
-from funcs import carregar_planilha, preparar_dataframe, adicionar_time
+from funcs import carregar_planilha, preparar_dataframe, adicionar_time, carregar_dataframes
 
 # Carrega as senhas do secrets.toml
 logins = st.secrets["logins"]
@@ -42,109 +42,37 @@ def main():
             username = st.text_input("Nome", placeholder="Digite seu nome")
             password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
             login_button = st.form_submit_button("Entrar")
-    
+
+        # Botão Espectador (não precisa de autenticação)
+        mensal_button = st.button("Viz Mensal")          
+        semanal_button = st.button("Viz Semanal")
+
+            
     # Verifica o login e define permissões
     if login_button:
         if username == "admin" and password == logins["admin"]:
             st.session_state.authenticated = True
             st.session_state.user_type = "admin"
-
-            planilhas_com_erro = []
-
-            try:
-                df_ligacoes = carregar_planilha("df_ligacoes", "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing", "LIGACOES")
-                df_ligacoes = preparar_dataframe(df_ligacoes)
-            except Exception as e:
-                planilhas_com_erro.append(f"Histórico de chamadas: {e}")
-
-            try:
-                df_metas_individuais = carregar_planilha('df_metas_individuais','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_individuais')
-            except Exception as e:
-                planilhas_com_erro.append(f"Metas_individuais: {e}")
-
-            try:
-                df_rmarcadas = carregar_planilha('df_rmarcadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.MARCADAS')
-                df_rmarcadas = adicionar_time('df_rmarcadas',df_rmarcadas, df_metas_individuais)
-            except Exception as e:
-                planilhas_com_erro.append(f"R.MARCADAS: {e}")
-            
-            try:
-                df_rrealizadas = carregar_planilha('df_rrealizadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.REALIZADAS')
-                df_rrealizadas = adicionar_time('df_rrealizadas',df_rrealizadas, df_metas_individuais)
-            except Exception as e:
-                planilhas_com_erro.append(f"R.REALIZADAS: {e}")
-            
-            try:
-                df_cassinados = carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS')
-                df_cassinados = adicionar_time('df_cassinados',df_cassinados, df_metas_individuais)
-            except Exception as e:
-                planilhas_com_erro.append(f"C.ASSINADOS: {e}")
-
-            try:
-                df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH')
-            except Exception as e:
-                planilhas_com_erro.append(f"Captação: {e}")
-
-            if planilhas_com_erro:
-                st.error("Erro ao carregar as seguintes planilhas:")
-                for erro in planilhas_com_erro:
-                    st.error(erro)
-            else:
-                st.success("Planilhas carregadas com sucesso!")
-                st.success("Bem-vindo, Admin! Redirecionando...")
-                st.switch_page("pages/0_Metrics.py")
-
-
-        # elif username == "bravo" and password == logins["bravo"]:
-        #     st.session_state.authenticated = True
-        #     st.session_state.user_type = "líder"
-        #     st.session_state.team = "time_bravo"
-        #     try:
-        #         df_ligacoes = carregar_planilha(sheet_url, aba_lig)
-        #         df_ligacoes = preparar_dataframe(df_ligacoes)
-        #         #df_usuarios = carregar_planilha(sheet_url, aba_usu)
-        #         st.success("Planilha carregada com sucesso!")
-        #         st.success("Bem-vindo, Líder do Time bravo! Redirecionando...")
-        #         st.switch_page("pages/3_time_bravo.py")
-        #     except Exception as e:
-        #         st.error(f"Erro ao carregar planilha: {e}")
-
-        # elif username == "fenix" and password == logins["fenix"]:
-        #     st.session_state.authenticated = True
-        #     st.session_state.user_type = "líder"
-        #     st.session_state.team = "time_fenix"
-        #     try:
-        #         df_ligacoes = carregar_planilha(sheet_url, aba_lig)
-        #         df_ligacoes = preparar_dataframe(df_ligacoes)
-        #         #df_usuarios = carregar_planilha(sheet_url, aba_usu)
-        #         st.success("Planilha carregada com sucesso!")
-        #         st.success("Bem-vindo, Líder do Time Fenix! Redirecionando...")
-        #         st.switch_page("pages/4_time_fenix.py")
-        #     except Exception as e:
-        #         st.error(f"Erro ao carregar planilha: {e}")
-
-        # elif username == "bulls" and password == logins["bulls"]:
-        #     st.session_state.authenticated = True
-        #     st.session_state.user_type = "líder"
-        #     st.session_state.team = "time_bulls"
-        #     try:
-        #         df_ligacoes = carregar_planilha(sheet_url, aba_lig)
-        #         df_ligacoes = preparar_dataframe(df_ligacoes)
-        #         #df_usuarios = carregar_planilha(sheet_url, aba_usu)
-        #         st.success("Planilha carregada com sucesso!")
-        #         st.success("Bem-vindo, Líder do Time Bulls! Redirecionando...")
-        #         st.switch_page("pages/6_time_bulls.py")
-        #     except Exception as e:
-        #         st.error(f"Erro ao carregar planilha: {e}")
-
+            carregar_dataframes()
+            st.switch_page("pages/0_Metrics.py")
         else:
             st.session_state.authenticated = False
             st.session_state.user_type = None
             st.error("Nome ou senha incorretos. Tente novamente.")
+    
+    if mensal_button:
+        st.session_state.authenticated = True
+        st.session_state.user_type = "spec"
+        carregar_dataframes()
+        st.switch_page("pages/1_Mensal.py")
 
-    # Botão Espectador (não precisa de autenticação)
-    #if st.button("Espectador"):
-    #    st.switch_page("pages/5_Espec.py")
+    if semanal_button:
+        st.session_state.authenticated = True
+        st.session_state.user_type = "spec"
+        carregar_dataframes()
+        st.switch_page("pages/2_Semanal.py")
+
+
 
 # Executa a função principal
 if __name__ == "__main__":

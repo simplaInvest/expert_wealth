@@ -72,4 +72,47 @@ def calcular_taxas(valores_dict):
         taxas.append(f"{taxa:.2f}%")
     return taxas
 
+def carregar_dataframes():
 
+    planilhas_com_erro = []
+
+    try:
+        df_ligacoes = carregar_planilha("df_ligacoes", "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing", "LIGACOES")
+        df_ligacoes = preparar_dataframe(df_ligacoes)
+    except Exception as e:
+        planilhas_com_erro.append(f"Histórico de chamadas: {e}")
+
+    try:
+        df_metas_individuais = carregar_planilha('df_metas_individuais','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_individuais')
+    except Exception as e:
+        planilhas_com_erro.append(f"Metas_individuais: {e}")
+
+    try:
+        df_rmarcadas = carregar_planilha('df_rmarcadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.MARCADAS')
+        df_rmarcadas = adicionar_time('df_rmarcadas',df_rmarcadas, df_metas_individuais)
+    except Exception as e:
+        planilhas_com_erro.append(f"R.MARCADAS: {e}")
+    
+    try:
+        df_rrealizadas = carregar_planilha('df_rrealizadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.REALIZADAS')
+        df_rrealizadas = adicionar_time('df_rrealizadas',df_rrealizadas, df_metas_individuais)
+    except Exception as e:
+        planilhas_com_erro.append(f"R.REALIZADAS: {e}")
+    
+    try:
+        df_cassinados = carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS')
+        df_cassinados = adicionar_time('df_cassinados',df_cassinados, df_metas_individuais)
+    except Exception as e:
+        planilhas_com_erro.append(f"C.ASSINADOS: {e}")
+
+    try:
+        df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH')
+    except Exception as e:
+        planilhas_com_erro.append(f"Captação: {e}")
+
+    if planilhas_com_erro:
+        st.error("Erro ao carregar as seguintes planilhas:")
+        for erro in planilhas_com_erro:
+            st.error(erro)
+    else:
+        st.success("Planilhas carregadas com sucesso!")
