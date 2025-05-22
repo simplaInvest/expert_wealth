@@ -207,7 +207,7 @@ st.divider()
 #########################################################################################################
 
 ##############################################################################
-##                              Velocimetros                                ##
+##                           Velocimetros e Funil                           ##
 ##############################################################################
 
 # Valores do funil
@@ -232,124 +232,109 @@ metas_acumuladas = {
     for etapa, valor_mensal in metas_mensais.items()
 }
 
-# Layout com espaçamento: 4 colunas de gráficos + 3 colunas de espaço
-cols = st.columns([1, 0.1, 1, 0.1, 1, 0.1, 1])  
+# Layout reorganizado com duas colunas principais
+col_1, col_2, col_funil, col_leg = st.columns([1, 1, 2, 2])
 
-
-with cols[0]:
-    valor = df_ligacoes_filtered.shape[0]
-
-    # Meta: dias úteis * 100 ligações por consultor * número de consultores
-    meta_atual = multiplicador_mes * 22 * 100 * n_consultores 
-
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=valor,
-        number={'valueformat': ',.0f'},
-        title={'text': "Ligações", 'font': {'size': 22}},
-        delta={'reference': meta_atual},
-        gauge={
-            'axis': {'range': [0, meta_atual], 'tickwidth': 1, 'tickcolor': "gray"},
-            'bar': {'color': "rgba(0,0,0,0)"},
-            'steps': [
-                {'range': [0, 0.5 * meta_atual], 'color': "#ff4d4d"},
-                {'range': [0.5 * meta_atual, 0.8 * meta_atual], 'color': "#ffd633"},
-                {'range': [0.8 * meta_atual, meta_atual], 'color': "#5cd65c"}
-            ],
-            'threshold': {
-                'line': {'color': "black", 'width': 6},
-                'thickness': 1,
-                'value': valor
-            }
-        }
-    ))
-    st.plotly_chart(fig, use_container_width=True)
-
-# Renderiza cada velocímetro
-for idx, (nome, valor) in enumerate(valores.items()):
-    col_index = 2 + idx * 2  # 2, 4, 6
-    meta_atual = metas_acumuladas[nome]
-
-    with cols[col_index]:
-        with st.container():
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=valor,
-                title={'text': nome, 'font': {'size': 22}},
-                delta={'reference': meta_atual},
-                gauge={
-                    'axis': {'range': [0, meta_atual], 'tickwidth': 1, 'tickcolor': "gray"},
-                    'bar': {'color': "rgba(0,0,0,0)"},
-                    'steps': [
-                        {'range': [0, 0.5 * meta_atual], 'color': "#ff4d4d"},
-                        {'range': [0.5 * meta_atual, 0.8 * meta_atual], 'color': "#ffd633"},
-                        {'range': [0.8 * meta_atual, meta_atual], 'color': "#5cd65c"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "black", 'width': 6},
-                        'thickness': 1,
-                        'value': valor
-                    }
+# Coluna 1: Ligações + Reuniões Marcadas
+with col_1:
+    for nome, valor, meta in [
+        ("Ligações", df_ligacoes_filtered.shape[0], multiplicador_mes * 5 * 100 * n_consultores),
+        ("Reuniões Realizadas", valores["Reuniões Realizadas"], metas_acumuladas["Reuniões Realizadas"])
+    ]:
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=valor,
+            number={'valueformat': ',.0f'},
+            title={'text': nome, 'font': {'size': 22}},
+            delta={'reference': meta},
+            gauge={
+                'axis': {'range': [0, meta], 'tickwidth': 1, 'tickcolor': "gray"},
+                'bar': {'color': "rgba(0,0,0,0)"},
+                'steps': [
+                    {'range': [0, 0.5 * meta], 'color': "#ff4d4d"},
+                    {'range': [0.5 * meta, 0.8 * meta], 'color': "#ffd633"},
+                    {'range': [0.8 * meta, meta], 'color': "#5cd65c"}
+                ],
+                'threshold': {
+                    'line': {'color': "black", 'width': 6},
+                    'thickness': 1,
+                    'value': valor
                 }
-            ))
+            }
+        ))
 
-            st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            margin=dict(t=50, b=10, l=0, r=0),
+            height=200
+            )
 
-##############################################################################
-##                                   Funil                                  ##
-##############################################################################
+        st.plotly_chart(fig, use_container_width=True)
 
+# Coluna 2: Reuniões Realizadas + Contratos Assinados
+with col_2:
+    for nome in ["Reuniões Marcadas", "Contratos Assinados"]:
+        valor = valores[nome]
+        meta = metas_acumuladas[nome]
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=valor,
+            title={'text': nome, 'font': {'size': 22}},
+            delta={'reference': meta},
+            gauge={
+                'axis': {'range': [0, meta], 'tickwidth': 1, 'tickcolor': "gray"},
+                'bar': {'color': "rgba(0,0,0,0)"},
+                'steps': [
+                    {'range': [0, 0.5 * meta], 'color': "#ff4d4d"},
+                    {'range': [0.5 * meta, 0.8 * meta], 'color': "#ffd633"},
+                    {'range': [0.8 * meta, meta], 'color': "#5cd65c"}
+                ],
+                'threshold': {
+                    'line': {'color': "black", 'width': 6},
+                    'thickness': 1,
+                    'value': valor
+                }
+            }
+        ))
+        fig.update_layout(
+            margin=dict(t=50, b=10, l=0, r=0),
+            height=200
+            )
+        st.plotly_chart(fig, use_container_width=True)
 
-cols_funnel = st.columns([12,6,1,3,1])
-
-with cols_funnel[0]:
-    # Converte para DataFrame
-    df_funnel = pd.DataFrame({
-        "Etapa": list(valores.keys()),
-        "Quantidade": list(valores.values())
-    })
-
-    # Cria o gráfico de funil
-    fig = px.funnel(
-        df_funnel,
-        y="Etapa",
-        x="Quantidade",
-        color_discrete_sequence=["#bfa94c"]
-    )
-
-    # Aumenta tamanho da fonte
-    fig.update_layout(
-        font=dict(size=22),  # Aumenta a fonte geral
-        xaxis_title_font=dict(size=18),
-        yaxis_title_font=dict(size=20),
-    )
-
-    # Exibe no Streamlit
-    st.plotly_chart(fig, use_container_width=True)
-
-with cols_funnel[1]:
-    # Insere "Ligações Atendidas" no início
+# Coluna 3: Funil
+with col_funil:
     etapas = list(valores.keys())
     quantidades = list(valores.values())
+    df_funnel = pd.DataFrame({"Etapa": etapas, "Quantidade": quantidades})
 
-    # Recalcula taxas
-    taxas_conversao = calcular_taxas(dict(zip(etapas, quantidades)))
+    fig = px.funnel(df_funnel, y="Etapa", x="Quantidade", color_discrete_sequence=["#bfa94c"])
+    fig.update_layout(
+        font=dict(size=22),
+        xaxis_title_font=dict(size=18),
+        yaxis_title_font=dict(size=20),
+        title="Funil de Conversão"
+    )
+    fig.update_layout(
+        margin=dict(t=30, b=0, l=0, r=0),
+        height=450
+        )
+    st.plotly_chart(fig, use_container_width=True)
+
+with col_leg:
+    def calcular_taxas(d):
+        v = list(d.values())
+        return [f"{(v[i+1]/v[i]*100):.1f}%" if v[i] else "0.0%" for i in range(len(v)-1)]
+
+    taxas_conversao = calcular_taxas(valores)
     taxas_float = [float(t.replace('%', '')) for t in taxas_conversao]
-
-    # Normalização para cores
     norm = mcolors.Normalize(vmin=-100, vmax=100)
     cmap = cm.get_cmap('Greens')
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
+    st.markdown("### Conversão entre Etapas")
     st.markdown("---")
-
     for i in range(len(etapas) - 1):
         cor_rgb = cmap(norm(taxas_float[i]))[:3]
         cor_hex = mcolors.to_hex(cor_rgb)
-
         st.markdown(
             f"""
             <div style="font-size: 18px;">
@@ -362,12 +347,10 @@ with cols_funnel[1]:
         st.markdown("---")
 
 
-with cols_funnel[3]:
     conv_final = (quantidades[-1] / quantidades[0]) * 100 if quantidades[0] > 0 else 0
-
     st.markdown(
         f"""
-        <div style="margin-top: 9rem; background-color:#f0f0f0; border-radius:10px; 
+        <div style="margin-top: 1rem; background-color:#f0f0f0; border-radius:10px; 
                     padding:1rem; text-align:center; border: 1px solid #ccc;">
             <div style="font-size: 30px; font-weight: bold; color: #388e3c;">
                 {conv_final:.2f}%
@@ -453,6 +436,69 @@ for idx, (titulo, df) in enumerate(rankings):
 ##############################################################################
 ##                                   Graf de linha                          ##
 ##############################################################################
+
+dias = pd.date_range(start=data_inicio, end=data_fim)
+meta_individual = 2
+meta_diaria_ajustada = meta_individual * n_consultores
+
+# Conta quantas reuniões marcadas por dia
+df_dia = (
+    df_rmarcadas_filtrado.groupby("DATA")["CONSULTOR"]
+    .count()
+    .reindex(dias.date, fill_value=0)
+    .reset_index()
+    .rename(columns={"index": "DATA", "CONSULTOR": "REALIZADO"})
+)
+
+# Criação do gráfico
+fig = go.Figure()
+
+# Barras de reuniões marcadas por dia
+fig.add_trace(go.Bar(
+    x=df_dia["DATA"],
+    y=df_dia["REALIZADO"],
+    name="Reuniões Marcadas",
+    marker_color="#1c64f2",
+    text=df_dia["REALIZADO"],
+    textposition="outside"
+))
+
+# Linha de meta diária ajustada
+fig.add_trace(go.Scatter(
+    x=df_dia["DATA"],
+    y=[meta_diaria_ajustada] * len(df_dia),
+    mode="lines",
+    name="Meta Diária",
+    line=dict(color="green", dash="dash")
+))
+
+fig.update_layout(
+    title="Reuniões Marcadas por Dia vs Meta",
+    xaxis_title="Data",
+    yaxis_title="Quantidade",
+    height=400,
+    barmode='group',
+    xaxis=dict(tickformat="%d/%m", tickangle=-45),
+    hovermode="x unified"
+)
+
+# Anotação visual da meta
+fig.add_annotation(
+    xref="paper", yref="y",
+    x=1.01, y=meta_diaria_ajustada,
+    text=f"Meta diária: {meta_diaria_ajustada}",
+    showarrow=False,
+    font=dict(size=14, color="green"),
+    align="left",
+    bgcolor="white",
+    bordercolor="green",
+    borderwidth=1
+)
+
+
+st.plotly_chart(fig, use_container_width=True)
+
+###################################
 
 # 1. Geração das datas do período filtrado
 dias = pd.date_range(start=data_inicio, end=data_fim)
@@ -601,7 +647,7 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 ##############################################################################
-##          Tabelas         ##
+##                                Tabelas                                   ##
 ##############################################################################
 
 cols_tabelas = st.columns(2)
@@ -661,36 +707,35 @@ with cols_tabelas[0]:
 ##############################################################################
 ##         Histograma       ##
 ##############################################################################
+with cols_tabelas[1]:
+    # Garante que a coluna 'Início da ligação' está em datetime
+    df_ligacoes_filtered = df_ligacoes_filtered.copy()
+    df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Início da ligação"].notna()]
 
-# Garante que a coluna 'Início da ligação' está em datetime
-df_ligacoes_filtered = df_ligacoes_filtered.copy()
-df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Início da ligação"].notna()]
+    # Converter o tempo para horas decimais
+    df_ligacoes_filtered['HoraDecimal'] = (
+        df_ligacoes_filtered['Início da ligação'].dt.hour +
+        df_ligacoes_filtered['Início da ligação'].dt.minute / 60
+    )
 
-# Converter o tempo para horas decimais
-df_ligacoes_filtered['HoraDecimal'] = (
-    df_ligacoes_filtered['Início da ligação'].dt.hour +
-    df_ligacoes_filtered['Início da ligação'].dt.minute / 60
-)
+    # Criar o histograma
+    hist_fig = px.histogram(
+        df_ligacoes_filtered, 
+        x='HoraDecimal', 
+        nbins=14, 
+        title='Distribuição de Ligações por Hora do Dia',
+        labels={'HoraDecimal': 'Hora do Dia'}, 
+        range_x=[7, 25],
+        text_auto=True
+    )
 
-# Criar o histograma
-hist_fig = px.histogram(
-    df_ligacoes_filtered, 
-    x='HoraDecimal', 
-    nbins=14, 
-    title='Distribuição de Ligações por Hora do Dia',
-    labels={'HoraDecimal': 'Hora do Dia'}, 
-    range_x=[7, 25],
-    text_auto=True
-)
+    # Estética do gráfico
+    hist_fig.update_traces(marker_line_width=2, marker_line_color='black')
+    hist_fig.update_traces(textposition='outside')
+    hist_fig.update_layout(
+        xaxis=dict(tickmode='linear', dtick=1),
+        bargap=0.05
+    )
 
-# Estética do gráfico
-hist_fig.update_traces(marker_line_width=2, marker_line_color='black')
-hist_fig.update_traces(textposition='outside')
-hist_fig.update_layout(
-    xaxis=dict(tickmode='linear', dtick=1),
-    bargap=0.05
-)
-
-# Exibir no Streamlit
-st.plotly_chart(hist_fig, use_container_width=True)
-
+    # Exibir no Streamlit
+    st.plotly_chart(hist_fig, use_container_width=True)
