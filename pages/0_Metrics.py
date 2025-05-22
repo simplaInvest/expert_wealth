@@ -722,7 +722,6 @@ fig.update_layout(
             range=[df_cap_simples["CAPTACAO"].min() * 2.8 if df_cap_simples["CAPTACAO"].min() < 0 else 0, 
                 df_cap_simples["CAPTACAO"].max() * 1.15
                 ],
-            titlefont=dict(size=16)
         ),
     margin=dict(t=30, b=0, l=0, r=0),
     height=700
