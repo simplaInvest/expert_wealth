@@ -172,8 +172,8 @@ with col_filtros[1]:
         consultores_filtrados = df_metas_individuais[df_metas_individuais["TIME"] == time_selecionado]["CONSULTOR"].dropna().unique()
     elif segmentacao == "Consultor":
         consultores_filtrados = [consultor_selecionado]
-    
-    n_consultores = max(1, len(consultores_filtrados)-3)
+        
+n_consultores = len(consultores_filtrados)
 
 with col_filtros[2]:
     st.write(f'Número de consultores selecionados: {n_consultores}')

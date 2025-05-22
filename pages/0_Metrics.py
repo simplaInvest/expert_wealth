@@ -178,7 +178,7 @@ with col_filtros[1]:
     elif segmentacao == "Consultor":
         consultores_filtrados = [consultor_selecionado]
     
-    n_consultores = max(1, len(consultores_filtrados)-3)
+    n_consultores = len(consultores_filtrados)
 
 with col_filtros[2]:
     st.write(f'Número de consultores selecionados: {n_consultores}')
