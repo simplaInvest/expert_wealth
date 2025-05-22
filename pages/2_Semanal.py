@@ -306,19 +306,65 @@ with col_2:
 with col_funil:
     etapas = list(valores.keys())
     quantidades = list(valores.values())
-    df_funnel = pd.DataFrame({"Etapa": etapas, "Quantidade": quantidades})
 
-    fig = px.funnel(df_funnel, y="Etapa", x="Quantidade", color_discrete_sequence=["#bfa94c"])
-    fig.update_layout(
-        font=dict(size=22),
-        xaxis_title_font=dict(size=18),
-        yaxis_title_font=dict(size=20),
-        title="Funil de Conversão"
+    # calculando taxas entre etapas
+    taxas = []
+    for i in range(len(quantidades) - 1):
+        de = quantidades[i]
+        para = quantidades[i + 1]
+        taxa = (para / de) * 100 if de > 0 else 0
+        taxas.append(f"{taxa:.1f}%")
+    # Define a altura y das anotações
+    posicoes_y = [0.70, 0.3, 0]  # ajuste conforme número de etapas e altura visual
+
+    df_funnel = pd.DataFrame({
+        "Etapa": etapas,
+        "Quantidade": quantidades,
+        "Texto": [f"{e}:" for e in etapas]
+    })
+
+    # Gráfico de funil com texto personalizado
+    fig = px.funnel(
+        df_funnel,
+        y="Etapa",
+        x="Quantidade",
+        text="Texto",
+        color_discrete_sequence=["#bfa94c"]
     )
+
+    # Ajustes visuais
+    fig.update_traces(textposition='auto', textfont_size=15)
     fig.update_layout(
-        margin=dict(t=25, b=0, l=0, r=0),
-        height=380
+        title="Funil de Conversão",
+        font=dict(size=18),
+        margin=dict(t=20, b=0, l=0, r=0),
+        height=380,
+        showlegend=False,
+        yaxis=dict(showticklabels=False, title=None)  # ⬅️ Remove rótulo lateral
+    )
+    # Adicione as taxas de conversão
+    for i, taxa in enumerate(taxas):
+        fig.add_annotation(
+            xref="paper", yref="paper",
+            x=0.5, y=posicoes_y[i],
+            text=f"⬇️ {taxa}",
+            showarrow=False,
+            font=dict(size=16, color="black")
         )
+
+    conv_final = round((quantidades[-1]/quantidades[0])*100, 1)
+
+    fig.add_annotation(
+        xref="paper", yref="paper",
+        x=0.1, y=-0,
+        text=f"Conv total: ⬇️ {conv_final}%",
+        showarrow=False,
+        font=dict(size=14, color="black")
+    )
+
+
+
+    # Exibe no Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
 with col_leg:
@@ -345,7 +391,7 @@ with col_leg:
         name="Reuniões Marcadas",
         marker_color="#1c64f2",
         text=df_dia["REALIZADO"],
-        textposition="outside"
+        textposition="outside",
     ))
 
     # Linha de meta diária ajustada
@@ -360,7 +406,9 @@ with col_leg:
     fig.update_layout(
         title="Reuniões Marcadas por Dia vs Meta",
         xaxis_title="Data",
-        yaxis_title="Quantidade",
+        yaxis=dict(
+            title = 'Reuniões marcadas',
+            range = [0, df_dia["REALIZADO"].max() * 1.15]),
         height=400,
         barmode='group',
         xaxis=dict(tickformat="%d/%m", tickangle=-45),
@@ -370,7 +418,7 @@ with col_leg:
     # Anotação visual da meta
     fig.add_annotation(
         xref="paper", yref="y",
-        x=1.01, y=meta_diaria_ajustada,
+        x=0.99, y=meta_diaria_ajustada,
         text=f"Meta diária: {meta_diaria_ajustada}",
         showarrow=False,
         font=dict(size=14, color="green"),
@@ -471,7 +519,7 @@ with col_leg:
                 type="buttons",
                 direction="right",
                 x=1,
-                y=1.2,
+                y=0,
                 xanchor="right",
                 yanchor="top",
                 buttons=buttons,
@@ -567,7 +615,10 @@ with cols_rankings[0]:
         title="Número de ligações por consultor",
     )
 
-    fig.update_layout(yaxis=dict(autorange="reversed"))
+    fig.update_layout(yaxis=dict(autorange="reversed"),
+                    margin=dict(t=21, b=10, l=0, r=0),
+                    height=350
+                    )
     fig.update_traces(textposition="outside")
 
     st.plotly_chart(fig, use_container_width=True)
@@ -604,7 +655,8 @@ for idx, (titulo, df) in enumerate(rankings):
         xaxis_title="Quantidade",
         yaxis_title="Consultor",
         yaxis=dict(automargin=True),
-        height=400
+        margin=dict(t=20, b=10, l=0, r=0),
+        height=350
     )
 
     # Exibe o gráfico na coluna correspondente (1 para o primeiro, 2 para o segundo)
@@ -612,7 +664,7 @@ for idx, (titulo, df) in enumerate(rankings):
         st.plotly_chart(fig, use_container_width=True)
 
 ##############################################################################
-##     ranking captação     ##
+##                              ranking captação                            ##
 ##############################################################################
 
 df_cap_simples = df_captação_mes.copy()
@@ -656,10 +708,19 @@ fig = go.Figure(go.Bar(
 
 fig.update_layout(
     title="Ranking de Captação por Consultor mês atual",
-    xaxis_title="Valor Captado (R$)",
     yaxis_title="Consultor",
+    font=dict(size=18),
     yaxis=dict(autorange="reversed"),
-    height=600
+    xaxis=dict(
+            title="Valor Captado (R$)",
+            range=[df_cap_simples["CAPTACAO"].min() * 2.8 if df_cap_simples["CAPTACAO"].min() < 0 else 0, 
+                df_cap_simples["CAPTACAO"].max() * 1.15
+                ],  
+            tickfont=dict(size=14),
+            titlefont=dict(size=16)
+        ),
+    margin=dict(t=30, b=0, l=0, r=0),
+    height=700
 )
 
 # Exibe no Streamlit
