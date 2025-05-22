@@ -476,7 +476,7 @@ with col_leg:
                 type="buttons",
                 direction="right",
                 x=1,
-                y=1.2,
+                y=0,
                 xanchor="right",
                 yanchor="top",
                 buttons=buttons,
