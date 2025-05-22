@@ -238,7 +238,7 @@ metas_acumuladas = {
 }
 
 # Layout reorganizado com duas colunas principais
-col_1, col_2, col_funil, col_leg = st.columns([1, 1, 2, 2])
+col_1, col_2, col_funil, col_leg = st.columns([1, 1, 3, 3])
 
 # Coluna 1: Ligações + Reuniões Marcadas
 with col_1:
@@ -250,7 +250,7 @@ with col_1:
             mode="gauge+number",
             value=valor,
             number={'valueformat': ',.0f'},
-            title={'text': nome, 'font': {'size': 22}},
+            title={'text': nome, 'font': {'size': 18}},
             delta={'reference': meta},
             gauge={
                 'axis': {'range': [0, meta], 'tickwidth': 1, 'tickcolor': "gray"},
@@ -269,20 +269,11 @@ with col_1:
         ))
 
         fig.update_layout(
-            margin=dict(t=50, b=10, l=0, r=0),
-            height=200
+            margin=dict(t=10, b=10, l=0, r=0),
+            height=180
             )
 
         st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown(
-                f"<div style='text-align:center; font-size:15px; margin-top:-10px;'>"
-                f"⚠️ Vermelho: até {int(0.5 * meta)} &nbsp;&nbsp; "
-                f"🟡 Amarelo: até {int(0.8 * meta)} &nbsp;&nbsp; "
-                f"🟢 Verde: até {int(meta)}"
-                f"</div>", 
-                unsafe_allow_html=True
-            )
 
 # Coluna 2: Reuniões Realizadas + Contratos Assinados
 with col_2:
@@ -292,7 +283,7 @@ with col_2:
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=valor,
-            title={'text': nome, 'font': {'size': 22}},
+            title={'text': nome, 'font': {'size': 18}},
             delta={'reference': meta},
             gauge={
                 'axis': {'range': [0, meta], 'tickwidth': 1, 'tickcolor': "gray"},
@@ -310,20 +301,11 @@ with col_2:
             }
         ))
         fig.update_layout(
-            margin=dict(t=50, b=10, l=0, r=0),
-            height=200
+            margin=dict(t=10, b=10, l=0, r=0),
+            height=180
             )
         
         st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown(
-                f"<div style='text-align:center; font-size:15px; margin-top:-10px;'>"
-                f"⚠️ Vermelho: até {int(0.5 * meta)} &nbsp;&nbsp; "
-                f"🟡 Amarelo: até {int(0.8 * meta)} &nbsp;&nbsp; "
-                f"🟢 Verde: até {int(meta)}"
-                f"</div>", 
-                unsafe_allow_html=True
-            )
 
 # Coluna 3: Funil
 with col_funil:
@@ -339,53 +321,230 @@ with col_funil:
         title="Funil de Conversão"
     )
     fig.update_layout(
-        margin=dict(t=30, b=0, l=0, r=0),
-        height=450
+        margin=dict(t=25, b=0, l=0, r=0),
+        height=380
         )
     st.plotly_chart(fig, use_container_width=True)
 
 with col_leg:
-    def calcular_taxas(d):
-        v = list(d.values())
-        return [f"{(v[i+1]/v[i]*100):.1f}%" if v[i] else "0.0%" for i in range(len(v)-1)]
+    dias = pd.date_range(start=data_inicio, end=data_fim)
+    meta_individual = 2
+    meta_diaria_ajustada = meta_individual * n_consultores
 
-    taxas_conversao = calcular_taxas(valores)
-    taxas_float = [float(t.replace('%', '')) for t in taxas_conversao]
-    norm = mcolors.Normalize(vmin=-100, vmax=100)
-    cmap = cm.get_cmap('Greens')
-
-    st.markdown("### Conversão entre Etapas")
-    st.markdown("---")
-    for i in range(len(etapas) - 1):
-        cor_rgb = cmap(norm(taxas_float[i]))[:3]
-        cor_hex = mcolors.to_hex(cor_rgb)
-        st.markdown(
-            f"""
-            <div style="font-size: 18px;">
-                <strong>{etapas[i]}</strong> ➡️ <strong>{etapas[i+1]}</strong>: 
-                <span style="color: {cor_hex}; font-weight: bold;">{taxas_conversao[i]}</span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown("---")
-
-
-    conv_final = (quantidades[-1] / quantidades[0]) * 100 if quantidades[0] > 0 else 0
-    st.markdown(
-        f"""
-        <div style="margin-top: 1rem; background-color:#f0f0f0; border-radius:10px; 
-                    padding:1rem; text-align:center; border: 1px solid #ccc;">
-            <div style="font-size: 30px; font-weight: bold; color: #388e3c;">
-                {conv_final:.2f}%
-            </div>
-            <div style="font-size: 14px;">
-                dos leads chegaram até o final do funil
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+    # Conta quantas reuniões marcadas por dia
+    df_dia = (
+        df_rmarcadas_filtrado.groupby("DATA")["CONSULTOR"]
+        .count()
+        .reindex(dias.date, fill_value=0)
+        .reset_index()
+        .rename(columns={"index": "DATA", "CONSULTOR": "REALIZADO"})
     )
+
+    # Criação do gráfico
+    fig = go.Figure()
+
+    # Barras de reuniões marcadas por dia
+    fig.add_trace(go.Bar(
+        x=df_dia["DATA"],
+        y=df_dia["REALIZADO"],
+        name="Reuniões Marcadas",
+        marker_color="#1c64f2",
+        text=df_dia["REALIZADO"],
+        textposition="outside"
+    ))
+
+    # Linha de meta diária ajustada
+    fig.add_trace(go.Scatter(
+        x=df_dia["DATA"],
+        y=[meta_diaria_ajustada] * len(df_dia),
+        mode="lines",
+        name="Meta Diária",
+        line=dict(color="green", dash="dash")
+    ))
+
+    fig.update_layout(
+        title="Reuniões Marcadas por Dia vs Meta",
+        xaxis_title="Data",
+        yaxis_title="Quantidade",
+        height=400,
+        barmode='group',
+        xaxis=dict(tickformat="%d/%m", tickangle=-45),
+        hovermode="x unified"
+    )
+
+    # Anotação visual da meta
+    fig.add_annotation(
+        xref="paper", yref="y",
+        x=1.01, y=meta_diaria_ajustada,
+        text=f"Meta diária: {meta_diaria_ajustada}",
+        showarrow=False,
+        font=dict(size=14, color="green"),
+        align="left",
+        bgcolor="white",
+        bordercolor="green",
+        borderwidth=1
+    )
+    fig.update_layout(
+        margin=dict(t=20, b=0, l=0, r=0),
+        height=220,
+        showlegend=False
+        )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    ###################################
+
+    # 1. Geração das datas do período filtrado
+    dias = pd.date_range(start=data_inicio, end=data_fim)
+
+    # 2. DataFrames reais por métrica
+    dados_real = {
+        "Reuniões Marcadas": df_rmarcadas_filtrado,
+        "Reuniões Realizadas": df_rrealizadas_filtrado,
+        "Contratos Assinados": df_cassinados_filtrado
+    }
+
+    # 3. gráfico
+    fig = go.Figure()
+
+    for i, (nome_metrica, df) in enumerate(dados_real.items()):
+        # Conta diários
+        df_dia = (
+            df.groupby("DATA")["CONSULTOR"]
+            .count()
+            .reindex(dias.date, fill_value=0)
+            .rename("REALIZADO")
+            .reset_index()
+            .rename(columns={"index": "DATA"})
+        )
+
+        # Linha Realizado
+        fig.add_trace(go.Scatter(
+            x=df_dia["DATA"],
+            y=df_dia["REALIZADO"].cumsum(),
+            mode="lines+markers+text",
+            name=f"{nome_metrica}",
+            text=df_dia["REALIZADO"].cumsum(),
+            textposition="top center",
+            fill="tozeroy",
+            line=dict(color="#1c64f2"),
+            visible=(i == 0)
+        ))
+
+        # ===== NOVA LINHA DE META ACUMULADA =====
+        meta_mensal = metas_acumuladas[nome_metrica]
+        meta_diaria = meta_mensal / 30
+        df_dia["META"] = [meta_diaria * (j + 1) for j in range(len(df_dia))]
+
+        fig.add_trace(go.Scatter(
+            x=df_dia["DATA"],
+            y=df_dia["META"],
+            mode="lines+markers+text",
+            name=f"{nome_metrica} - Meta",
+            text=df_dia["META"].astype(int),
+            textposition="top center",
+            line=dict(color="green", dash="dot"),
+            visible=(i == 0)
+        ))
+
+
+    # 4. Botões interativos por métrica
+    buttons = []
+    for i, nome_metrica in enumerate(dados_real.keys()):
+        vis = [False] * (len(dados_real) * 2)
+        vis[i*2] = True       # Realizado
+        vis[i*2 + 1] = True   # Meta
+        buttons.append(dict(
+            label=nome_metrica,
+            method="update",
+            args=[{"visible": vis},
+                {"title": f"{nome_metrica}"}]
+        ))
+
+
+    # 5. Layout final
+    fig.update_layout(
+        title="Reuniões Marcadas",
+        xaxis_title="Data",
+        yaxis_title="Quantidade acumulada",
+        height=500,
+        hovermode="x unified",
+        xaxis=dict(range=[data_inicio, data_fim]),
+        showlegend = False,
+        updatemenus=[
+            dict(
+                type="buttons",
+                direction="right",
+                x=1,
+                y=1.2,
+                xanchor="right",
+                yanchor="top",
+                buttons=buttons,
+                showactive=True,
+                bgcolor="white",
+                bordercolor="#ccc",
+                font=dict(size=10),  # ⬅️ tamanho da fonte reduzido
+                pad=dict(r=0, t=0)   # ⬅️ padding interno menor
+            )
+        ]
+
+    )
+
+    fig.update_layout(
+        margin=dict(t=20, b=0, l=0, r=0),
+        height=250,
+        )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+#########################################
+    # def calcular_taxas(d):
+    #     v = list(d.values())
+    #     return [f"{(v[i+1]/v[i]*100):.1f}%" if v[i] else "0.0%" for i in range(len(v)-1)]
+
+    # taxas_conversao = calcular_taxas(valores)
+    # taxas_float = [float(t.replace('%', '')) for t in taxas_conversao]
+    # norm = mcolors.Normalize(vmin=-100, vmax=100)
+    # cmap = cm.get_cmap('Greens')
+
+    # st.markdown("""
+    # <div style="margin-bottom: 0px; font-size: 22px; font-weight: 600;">
+    #     Conversão entre Etapas
+    # </div>
+    # <hr style="margin-top: 20px; margin-bottom: 10px;">
+    # """, unsafe_allow_html=True)
+
+    # for i in range(len(etapas) - 1):
+    #     cor_rgb = cmap(norm(taxas_float[i]))[:3]
+    #     cor_hex = mcolors.to_hex(cor_rgb)
+
+    #     st.markdown(
+    #         f"""
+    #         <div style="font-size: 15px; margin-bottom: 20px;">
+    #             <strong>{etapas[i]}</strong> ➡️ <strong>{etapas[i+1]}</strong>:
+    #             <span style="color: {cor_hex}; font-weight: bold;">{taxas_conversao[i]}</span>
+    #         </div>
+    #         <hr style="margin-top: 20px; margin-bottom: 20px;">
+    #         """,
+    #         unsafe_allow_html=True
+    #     )
+
+
+    # conv_final = (quantidades[-1] / quantidades[0]) * 100 if quantidades[0] > 0 else 0
+    # st.markdown(
+    #     f"""
+    #     <div style="margin-top: 1rem; background-color:#f0f0f0; border-radius:10px; 
+    #                 padding:1rem; text-align:center; border: 1px solid #ccc;">
+    #         <div style="font-size: 20px; font-weight: bold; color: #388e3c;">
+    #             {conv_final:.2f}%
+    #         </div>
+    #         <div style="font-size: 14px;">
+    #             dos leads chegaram até o final do funil
+    #         </div>
+    #     </div>
+    #     """,
+    #     unsafe_allow_html=True
+    # )
 
 ##############################################################################
 ##                                   rankings                               ##
@@ -456,165 +615,6 @@ for idx, (titulo, df) in enumerate(rankings):
     # Exibe o gráfico na coluna correspondente (1 para o primeiro, 2 para o segundo)
     with cols_rankings[idx + 1]:
         st.plotly_chart(fig, use_container_width=True)
-
-##############################################################################
-##                                   Graf de linha                          ##
-##############################################################################
-
-dias = pd.date_range(start=data_inicio, end=data_fim)
-meta_individual = 2
-meta_diaria_ajustada = meta_individual * n_consultores
-
-# Conta quantas reuniões marcadas por dia
-df_dia = (
-    df_rmarcadas_filtrado.groupby("DATA")["CONSULTOR"]
-    .count()
-    .reindex(dias.date, fill_value=0)
-    .reset_index()
-    .rename(columns={"index": "DATA", "CONSULTOR": "REALIZADO"})
-)
-
-# Criação do gráfico
-fig = go.Figure()
-
-# Barras de reuniões marcadas por dia
-fig.add_trace(go.Bar(
-    x=df_dia["DATA"],
-    y=df_dia["REALIZADO"],
-    name="Reuniões Marcadas",
-    marker_color="#1c64f2",
-    text=df_dia["REALIZADO"],
-    textposition="outside"
-))
-
-# Linha de meta diária ajustada
-fig.add_trace(go.Scatter(
-    x=df_dia["DATA"],
-    y=[meta_diaria_ajustada] * len(df_dia),
-    mode="lines",
-    name="Meta Diária",
-    line=dict(color="green", dash="dash")
-))
-
-fig.update_layout(
-    title="Reuniões Marcadas por Dia vs Meta",
-    xaxis_title="Data",
-    yaxis_title="Quantidade",
-    height=400,
-    barmode='group',
-    xaxis=dict(tickformat="%d/%m", tickangle=-45),
-    hovermode="x unified"
-)
-
-# Anotação visual da meta
-fig.add_annotation(
-    xref="paper", yref="y",
-    x=1.01, y=meta_diaria_ajustada,
-    text=f"Meta diária: {meta_diaria_ajustada}",
-    showarrow=False,
-    font=dict(size=14, color="green"),
-    align="left",
-    bgcolor="white",
-    bordercolor="green",
-    borderwidth=1
-)
-
-
-st.plotly_chart(fig, use_container_width=True)
-
-###################################
-
-# 1. Geração das datas do período filtrado
-dias = pd.date_range(start=data_inicio, end=data_fim)
-
-# 2. DataFrames reais por métrica
-dados_real = {
-    "Reuniões Marcadas": df_rmarcadas_filtrado,
-    "Reuniões Realizadas": df_rrealizadas_filtrado,
-    "Contratos Assinados": df_cassinados_filtrado
-}
-
-# 3. gráfico
-fig = go.Figure()
-
-for i, (nome_metrica, df) in enumerate(dados_real.items()):
-    # Conta diários
-    df_dia = (
-        df.groupby("DATA")["CONSULTOR"]
-        .count()
-        .reindex(dias.date, fill_value=0)
-        .rename("REALIZADO")
-        .reset_index()
-        .rename(columns={"index": "DATA"})
-    )
-
-    # Linha Realizado
-    fig.add_trace(go.Scatter(
-        x=df_dia["DATA"],
-        y=df_dia["REALIZADO"].cumsum(),
-        mode="lines+markers+text",
-        name=f"{nome_metrica}",
-        text=df_dia["REALIZADO"].cumsum(),
-        textposition="top center",
-        fill="tozeroy",
-        line=dict(color="#1c64f2"),
-        visible=(i == 0)
-    ))
-
-    # ===== NOVA LINHA DE META ACUMULADA =====
-    meta_mensal = metas_acumuladas[nome_metrica]
-    meta_diaria = meta_mensal / 30
-    df_dia["META"] = [meta_diaria * (j + 1) for j in range(len(df_dia))]
-
-    fig.add_trace(go.Scatter(
-        x=df_dia["DATA"],
-        y=df_dia["META"],
-        mode="lines+markers+text",
-        name=f"{nome_metrica} - Meta",
-        text=df_dia["META"].astype(int),
-        textposition="top center",
-        line=dict(color="green", dash="dot"),
-        visible=(i == 0)
-    ))
-
-
-# 4. Botões interativos por métrica
-buttons = []
-for i, nome_metrica in enumerate(dados_real.keys()):
-    vis = [False] * (len(dados_real) * 2)
-    vis[i*2] = True       # Realizado
-    vis[i*2 + 1] = True   # Meta
-    buttons.append(dict(
-        label=nome_metrica,
-        method="update",
-        args=[{"visible": vis},
-              {"title": f"{nome_metrica}"}]
-    ))
-
-
-# 5. Layout final
-fig.update_layout(
-    title="Reuniões Marcadas",
-    xaxis_title="Data",
-    yaxis_title="Quantidade acumulada",
-    height=500,
-    hovermode="x unified",
-    xaxis=dict(range=[data_inicio, data_fim]),
-    updatemenus=[
-        dict(
-            type="buttons",
-            direction="right",
-            x=0.7,
-            y=1.15,
-            buttons=buttons,
-            showactive=True,
-            bgcolor="white",
-            bordercolor="#ccc"
-        )
-    ]
-)
-
-st.plotly_chart(fig, use_container_width=True)
 
 ##############################################################################
 ##     ranking captação     ##
