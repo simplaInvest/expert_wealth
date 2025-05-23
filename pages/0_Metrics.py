@@ -254,8 +254,7 @@ metas_acumuladas = {
     etapa: multiplicador_mes * valor_mensal * n_consultores
     for etapa, valor_mensal in metas.items()
 }
-data_inicio
-data_fim
+
 projetar_dados(
     df_ligacoes_filtered,
     df_rmarcadas_filtrado,
@@ -271,4 +270,4 @@ projetar_dados(
     data_inicio,
     data_fim
 )
-df_metas_individuais
+

@@ -580,7 +580,6 @@ def projetar_dados(
 
     df_cap = df_captação_mes.copy()
     df_metas = df_metas_individuais.copy()
-    st.dataframe(df_cap)
 
     # Padronização dos nomes para merge
     df_cap["NOME"] = (
@@ -626,7 +625,6 @@ def projetar_dados(
 
     # Ordenação
     df = df.sort_values(by="CAPTACAO", ascending=False)
-    st.dataframe(df)
     # Gráfico base
     fig = go.Figure()
 
