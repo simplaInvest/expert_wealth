@@ -215,65 +215,76 @@ def projetar_dados(
         etapas = list(valores.keys())
         quantidades = list(valores.values())
 
-        # calculando taxas entre etapas
+        # Taxas de conversão entre etapas
         taxas = []
         for i in range(len(quantidades) - 1):
             de = quantidades[i]
             para = quantidades[i + 1]
             taxa = (para / de) * 100 if de > 0 else 0
             taxas.append(f"{taxa:.1f}%")
-        # Define a altura y das anotações
-        posicoes_y = [0.70, 0.3, 0]  # ajuste conforme número de etapas e altura visual
 
+        # 🔧 AJUSTÁVEIS MANUALMENTE
+        posicoes_y_etapas = [0.92, 0.55, 0.19]
+        posicoes_y_taxas = [0.305, 0.687]
+
+        # Criação do DataFrame base
         df_funnel = pd.DataFrame({
             "Etapa": etapas,
-            "Quantidade": quantidades,
-            "Texto": [f"{e}:" for e in etapas]
+            "Quantidade": quantidades
         })
 
-        # Gráfico de funil com texto personalizado
+        # Gráfico base
         fig = px.funnel(
             df_funnel,
             y="Etapa",
             x="Quantidade",
-            text="Texto",
             color_discrete_sequence=["#bfa94c"]
         )
 
-        # Ajustes visuais
-        fig.update_traces(textposition='auto', textfont_size=15)
+        # Remove texto automático
+        fig.update_traces(text=None)
+
+        # Anotações: Etapas
+        for etapa, y in zip(etapas, posicoes_y_etapas):
+            fig.add_annotation(
+                xref="paper", yref="paper",
+                x=0.5, y=y,
+                text=f"<b>{etapa}:</b>",
+                showarrow=False,
+                font=dict(size=18, color="#444444")
+            )
+
+        # Anotações: Taxas de conversão
+        for i, y in enumerate(posicoes_y_taxas):
+            fig.add_annotation(
+                xref="paper", yref="paper",
+                x=0.5, y=y,
+                text=f"⬇️ {taxas[i-1]}",
+                showarrow=False,
+                font=dict(size=14, color="black")
+            )
+
+        # Layout final
         fig.update_layout(
             title="Funil de Conversão",
             font=dict(size=18),
             margin=dict(t=20, b=0, l=0, r=0),
-            height=380,
+            height=420,
             showlegend=False,
-            yaxis=dict(showticklabels=False, title=None)  # ⬅️ Remove rótulo lateral
+            yaxis=dict(showticklabels=False, title=None)
         )
-        # Adicione as taxas de conversão
-        for i, taxa in enumerate(taxas):
-            fig.add_annotation(
-                xref="paper", yref="paper",
-                x=0.5, y=posicoes_y[i],
-                text=f"⬇️ {taxa}",
-                showarrow=False,
-                font=dict(size=16, color="black")
-            )
-
-        conv_final = round((quantidades[-1]/quantidades[0])*100, 1) if quantidades[0] != 0 else 0
-
-        fig.add_annotation(
-            xref="paper", yref="paper",
-            x=0.1, y=-0,
-            text=f"Conv total: ⬇️ {conv_final}%",
-            showarrow=False,
-            font=dict(size=14, color="black")
-        )
-
-
-
         # Exibe no Streamlit
         st.plotly_chart(fig, use_container_width=True)
+
+        conv_final = round((quantidades[-1]/quantidades[0])*100, 1) if quantidades[0] != 0 else 0
+        st.markdown(
+            f"""
+            <div style='text-align: center; font-size: 18px; font-weight: bold;'>
+                Conv total: ⬇️ {conv_final:.2f}%
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     with col_leg:
         # Geração apenas dos dias úteis
@@ -431,18 +442,18 @@ def projetar_dados(
                     direction="right",
                     x=1,
                     y=0,
-                    xanchor="right",
-                    yanchor="top",
-                    buttons=buttons,
                     showactive=True,
-                    bgcolor="white",
-                    bordercolor="#ccc",
-                    font=dict(size=10),  # ⬅️ tamanho da fonte reduzido
-                    pad=dict(r=0, t=0)   # ⬅️ padding interno menor
+                    bgcolor="#333333",         # fundo do botão (escuro)
+                    bordercolor="#999999",     # borda cinza clara
+                    font=dict(
+                        color="white",         # texto branco
+                        size=12
+                    ),
+                    buttons=buttons
                 )
             ]
-
         )
+
 
         fig.update_layout(
             margin=dict(t=20, b=0, l=0, r=0),

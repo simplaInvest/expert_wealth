@@ -14,18 +14,15 @@ def setup_sidebar():
     with st.sidebar:
         st.header("Navegação")
 
+        user_type = st.session_state.get("user_type", None)  # ✅ Seguro
+
         # Se for admin, exibe todas as páginas
-        if st.session_state.user_type == "admin":
-            st.page_link("pages/0_Metrics.py", label = '🔻 Métricas funil')
-            st.page_link("pages/1_Mensal.py", label = '📅 Viz Mensal')
-            st.page_link("pages/2_Semanal.py", label = '7️⃣ Viz Semanal')
+        if user_type == "admin":
+            st.page_link("pages/0_Metrics.py", label='🔻 Métricas funil')
             st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls - Comercial GR")
 
-        # Espectador
-        elif st.session_state.user_type == 'spec':
-            st.page_link("pages/1_Mensal.py", label = '📅 Viz Mensal')
-            st.page_link("pages/2_Semanal.py", label = '7️⃣ Viz Semanal')
+        # Botão de Logout (visível apenas se logado)
+        if user_type:
+            if st.button("Sair"):
+                logout()
 
-        # Botão de Logout corrigido
-        if st.button("Sair"):
-            logout()  # Chama a função de logout corretamente

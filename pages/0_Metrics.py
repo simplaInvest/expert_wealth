@@ -19,8 +19,9 @@ import random
 from datetime import datetime, timedelta
 import re
 
-from funcs import calcular_taxas, projetar_dados
+from funcs import calcular_taxas, projetar_dados, carregar_dataframes
 from sidebar import setup_sidebar
+
 
 ##############################################################################
 ##                           Autenticação e cache                           ##
@@ -28,10 +29,16 @@ from sidebar import setup_sidebar
 
 st.set_page_config(page_title="Metrics", page_icon="🔧", layout = 'wide')
 
-# Verifica autenticação
-if "authenticated" not in st.session_state or not st.session_state.authenticated:
-    st.warning("Acesso negado. Faça login para acessar esta página.")
-    st.switch_page("main.py")
+# Esconde a barra superior do Streamlit
+st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+""", unsafe_allow_html=True)
+
+
 
 # Chama a sidebar
 setup_sidebar()
@@ -52,6 +59,9 @@ if st.button("Limpar Tudo"):
 #######################################################################################
 ##                           Carregar dfs do session state                           ##
 #######################################################################################
+if not all(k in st.session_state for k in ["df_ligacoes", "df_rmarcadas","df_rrealizadas", "df_cassinados", "df_metas_individuais", "df_captação"]):
+    carregar_dataframes()
+
 
 df_ligacoes = st.session_state.get("df_ligacoes")
 df_rmarcadas = st.session_state.get("df_rmarcadas")
