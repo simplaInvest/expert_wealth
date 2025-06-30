@@ -20,6 +20,7 @@ def setup_sidebar():
         if user_type == "admin":
             st.page_link("pages/0_Metrics.py", label='🔻 Métricas funil')
             st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls - Comercial GR")
+            st.page_link("pages/2_SDR.py", label = "📞 SDRs")
 
         # Botão de Logout (visível apenas se logado)
         if user_type:

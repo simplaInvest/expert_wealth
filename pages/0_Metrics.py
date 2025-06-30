@@ -30,15 +30,13 @@ from sidebar import setup_sidebar
 st.set_page_config(page_title="Metrics", page_icon="🔧", layout = 'wide')
 
 # Esconde a barra superior do Streamlit
-st.markdown("""
-    <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-    </style>
-""", unsafe_allow_html=True)
-
-
+#st.markdown("""
+#    <style>
+#        #MainMenu {visibility: hidden;}
+#        footer {visibility: hidden;}
+#        header {visibility: hidden;}
+#    </style>
+#""", unsafe_allow_html=True)
 
 # Chama a sidebar
 setup_sidebar()
@@ -61,7 +59,6 @@ if st.button("Limpar Tudo"):
 #######################################################################################
 if not all(k in st.session_state for k in ["df_ligacoes", "df_rmarcadas","df_rrealizadas", "df_cassinados", "df_metas_individuais", "df_captação"]):
     carregar_dataframes()
-
 
 df_ligacoes = st.session_state.get("df_ligacoes")
 df_rmarcadas = st.session_state.get("df_rmarcadas")

@@ -218,7 +218,7 @@ valores = {
 }
 
 # Metas por dia por consultor
-metas_semanais = {
+metas = {
     "Reuniões Marcadas": 10,
     "Reuniões Realizadas": 7,
     "Contratos Assinados": 2
@@ -229,7 +229,7 @@ multiplicador_mes = mes_fim - mes_inicio + 1
 # Meta acumulada = dias * meta_diária * número de consultores
 metas_acumuladas = {
     etapa: multiplicador_mes * valor_mensal * n_consultores
-    for etapa, valor_mensal in metas_semanais.items()
+    for etapa, valor_mensal in metas.items()
 }
 
 # Layout reorganizado com duas colunas principais

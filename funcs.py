@@ -117,7 +117,17 @@ def carregar_dataframes():
         df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH')
     except Exception as e:
         planilhas_com_erro.append(f"Captação: {e}")
+    
+    try:
+        df_sdr = carregar_planilha('df_sdr', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS')
+    except Exception as e:
+        planilhas_com_erro.append(f"Dados_SDR: {e}")
 
+    try:
+        df_discadora = carregar_planilha('df_discadora', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS DISCADORA')
+    except Exception as e:
+        planilhas_com_erro.append(f"Dados_Discadora: {e}")
+    
     if planilhas_com_erro:
         st.error("Erro ao carregar as seguintes planilhas:")
         for erro in planilhas_com_erro:
@@ -781,3 +791,276 @@ def projetar_dados(
         # Exibir no Streamlit
         st.plotly_chart(hist_fig, use_container_width=True)
 
+def pag_sdr(df_sdr, df_discadora):
+    import streamlit as st
+    import pandas as pd
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from datetime import datetime
+    import numpy as np
+    # Função para carregar e processar os dados
+    @st.cache_data
+    def preparar_dados():
+
+        # Processamento dos dados
+        # Converter PATRIMÔNIO para numérico
+        df_sdr['PATRIMÔNIO'] = df_sdr['PATRIMÔNIO'].str.replace('R$ ', '').str.replace('.', '').str.replace(',', '.').astype(float)
+        # Converter datas
+        df_sdr['IRÁ SER FEITA EM'] = pd.to_datetime(df_sdr['IRÁ SER FEITA EM'], format='%d/%m/%Y', errors='coerce')
+        df_sdr['MARCADA EM'] = pd.to_datetime(df_sdr['MARCADA EM'], format='%d/%m/%Y', errors='coerce')
+        
+        return df_sdr, df_discadora
+
+    # Título do dashboard
+    st.title("📊 Dashboard - Métricas SDR")
+    st.info("""
+    💡 Em desenvolvimento 🥶
+    """)
+    st.markdown("---")
+
+    # Carregar dados
+    df_sdr, df_discadora = preparar_dados()
+
+    # FILTROS
+    st.subheader("🔍 Filtros")
+
+    # Criar colunas para os filtros
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+    with col1:
+        sdr_options = st.multiselect(
+            "SDR",
+            options=['TODOS'] + list(df_sdr['SDR'].unique()),
+            default=['TODOS']
+        )
+
+    with col2:
+        status_options = st.multiselect(
+            "STATUS",
+            options=['TODOS'] + list(df_sdr['STATUS'].unique()),
+            default=['TODOS']
+        )
+
+    with col3:
+        consultor_options = st.multiselect(
+            "CONSULTOR",
+            options=['TODOS'] + list(df_sdr['CONSULTOR'].unique()),
+            default=['TODOS']
+        )
+
+    with col4:
+        origem_option = st.selectbox(
+            "ORIGEM",
+            options=['Todos'] + list(df_sdr['ORIGEM'].unique()),
+            index=0
+        )
+
+    with col5:
+        # Data mínima e máxima para o filtro
+        min_date = df_sdr['IRÁ SER FEITA EM'].min()
+        max_date = df_sdr['IRÁ SER FEITA EM'].max()
+        
+        data_ira_ser_feita = st.date_input(
+            "IRÁ SER FEITA EM",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
+
+    with col6:
+        min_date_marcada = df_sdr['MARCADA EM'].min()
+        max_date_marcada = df_sdr['MARCADA EM'].max()
+        
+        data_marcada = st.date_input(
+            "MARCADA EM",
+            value=(min_date_marcada, max_date_marcada),
+            min_value=min_date_marcada,
+            max_value=max_date_marcada
+        )
+
+    # Aplicar filtros
+    df_sdr_filtered = df_sdr.copy()
+
+    # Filtro SDR
+    if 'TODOS' not in sdr_options and sdr_options:
+        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['SDR'].isin(sdr_options)]
+
+    # Filtro STATUS
+    if 'TODOS' not in status_options and status_options:
+        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['STATUS'].isin(status_options)]
+
+    # Filtro CONSULTOR
+    if 'TODOS' not in consultor_options and consultor_options:
+        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['CONSULTOR'].isin(consultor_options)]
+
+    # Filtro ORIGEM
+    if origem_option != 'Todos':
+        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['ORIGEM'] == origem_option]
+
+    # Filtro de datas
+    if len(data_ira_ser_feita) == 2:
+        start_date, end_date = data_ira_ser_feita
+        df_sdr_filtered = df_sdr_filtered[
+            (df_sdr_filtered['IRÁ SER FEITA EM'] >= pd.Timestamp(start_date)) &
+            (df_sdr_filtered['IRÁ SER FEITA EM'] <= pd.Timestamp(end_date))
+        ]
+
+    if len(data_marcada) == 2:
+        start_date_marcada, end_date_marcada = data_marcada
+        df_sdr_filtered = df_sdr_filtered[
+            (df_sdr_filtered['MARCADA EM'] >= pd.Timestamp(start_date_marcada)) &
+            (df_sdr_filtered['MARCADA EM'] <= pd.Timestamp(end_date_marcada))
+        ]
+
+    st.markdown("---")
+
+    # MÉTRICAS E GRÁFICOS
+    col1, col2, col3 = st.columns([1, 4, 2])
+
+    with col1:
+        # Métrica de número de eventos
+        num_eventos = len(df_sdr_filtered)
+        st.metric(
+            label="📅 Número de Eventos",
+            value=num_eventos
+        )
+
+ 
+    with col2:
+        # Extração da coluna
+        patrimonio_data = df_sdr_filtered['PATRIMÔNIO'].dropna()
+
+        # Cria os bins manualmente
+        counts, bin_edges = np.histogram(patrimonio_data, bins=20)
+
+        # Calcula o centro de cada bin (para o eixo x)
+        bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+        # Define o limite do eixo Y como 1.2x o maior valor
+        max_count = counts.max()
+        y_limit = max_count * 1.2
+
+        # Cria o gráfico manualmente
+        fig_hist = go.Figure(data=[
+            go.Bar(
+                x=bin_centers,
+                y=counts,
+                text=counts,
+                textposition='outside',
+                marker_color='#1f77b4'
+            )
+        ])
+
+        fig_hist.update_layout(
+            title='📈 Distribuição do Patrimônio',
+            xaxis_title='Patrimônio (R$)',
+            yaxis_title='Frequência',
+            height=400,
+            yaxis=dict(range=[0, y_limit])
+        )
+
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+
+    with col3:
+        # Gráfico de pizza - Temperatura do Lead
+        temp_data = df_sdr_filtered['TEMPERATURA DO LEAD'].value_counts()
+        
+        # Filtrar apenas FRIO, MORNO, QUENTE
+        valid_temps = ['FRIO', 'MORNO', 'QUENTE']
+        temp_filtered = temp_data[temp_data.index.isin(valid_temps)]
+        
+        if len(temp_filtered) > 0:
+            colors = {'FRIO': '#1f77b4', 'MORNO': '#ffbb33', 'QUENTE': '#ff4444'}
+            
+            # Calcular percentuais
+            total = temp_filtered.sum()
+            percentuais = (temp_filtered / total * 100).round(1)
+            
+            # Criar labels com valores absolutos e relativos
+            labels = [f"{temp}<br>{temp_filtered[temp]} ({percentuais[temp]}%)" 
+                    for temp in temp_filtered.index]
+            
+            fig_pie = go.Figure(data=[go.Pie(
+                labels=temp_filtered.index,
+                values=temp_filtered.values,
+                marker_colors=[colors.get(temp, '#gray') for temp in temp_filtered.index],
+                textinfo='label+value+percent',
+                texttemplate='%{label}<br>%{value} (%{percent})'
+            )])
+            
+            fig_pie.update_layout(
+                title='🌡️ Temperatura do Lead',
+                height=400
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+        else:
+            st.info("Não há dados de temperatura válidos para exibir")
+
+    # Gráficos de barras para as datas
+    col1, col2 = st.columns(2)
+
+    with col1:
+        # Gráfico de barras - IRÁ SER FEITA EM
+        if not df_sdr_filtered['IRÁ SER FEITA EM'].isna().all():
+            data_counts = df_sdr_filtered['IRÁ SER FEITA EM'].dt.date.value_counts().sort_index()
+
+            max_count = data_counts.max()
+            y_limit = max_count * 1.2
+
+            fig_bar1 = px.bar(
+                x=data_counts.index,
+                y=data_counts.values,
+                title='📅 Reuniões por Data - IRÁ SER FEITA EM',
+                color_discrete_sequence=['#2E8B57']
+            )
+            fig_bar1.update_layout(
+                xaxis_title="Data",
+                yaxis_title="Quantidade",
+                height=400,
+                yaxis=dict(range=[0, y_limit])
+            )
+            fig_bar1.update_traces(
+                texttemplate='%{y}',
+                textposition='outside'
+            )
+            st.plotly_chart(fig_bar1, use_container_width=True)
+        else:
+            st.info("Não há dados de data válidos para 'IRÁ SER FEITA EM'")
+
+    with col2:
+        # Gráfico de barras - MARCADA EM
+        if not df_sdr_filtered['MARCADA EM'].isna().all():
+            data_counts_marcada = df_sdr_filtered['MARCADA EM'].dt.date.value_counts().sort_index()
+
+            max_count_marcada = data_counts_marcada.max()
+            y_limit_marcada = max_count_marcada * 1.2
+
+            fig_bar2 = px.bar(
+                x=data_counts_marcada.index,
+                y=data_counts_marcada.values,
+                title='📅 Reuniões por Data - MARCADA EM',
+                color_discrete_sequence=['#FF6347']
+            )
+            fig_bar2.update_layout(
+                xaxis_title="Data",
+                yaxis_title="Quantidade",
+                height=400,
+                yaxis=dict(range=[0, y_limit_marcada])
+            )
+            fig_bar2.update_traces(
+                texttemplate='%{y}',
+                textposition='outside'
+            )
+            st.plotly_chart(fig_bar2, use_container_width=True)
+        else:
+            st.info("Não há dados de data válidos para 'MARCADA EM'")
+
+    # Tabela de dados filtrados
+    st.markdown("---")
+    st.subheader("📋 Dados Filtrados")
+    st.dataframe(df_sdr_filtered, use_container_width=True)
+
+    # Instruções para usar com dados reais
+    st.markdown("---")
+   
