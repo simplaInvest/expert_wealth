@@ -798,16 +798,18 @@ def pag_sdr(df_sdr, df_discadora):
     import plotly.graph_objects as go
     from datetime import datetime
     import numpy as np
+
     # Função para carregar e processar os dados
     @st.cache_data
     def preparar_dados():
 
         # Processamento dos dados
         # Converter PATRIMÔNIO para numérico
-        df_sdr['PATRIMÔNIO'] = df_sdr['PATRIMÔNIO'].str.replace('R$ ', '').str.replace('.', '').str.replace(',', '.').astype(float)
+        #df_sdr['PATRIMÔNIO'] = df_sdr['PATRIMÔNIO'].str.replace('R$ ', '').str.replace('.', '').str.replace(',', '.').astype(float)
         # Converter datas
         df_sdr['IRÁ SER FEITA EM'] = pd.to_datetime(df_sdr['IRÁ SER FEITA EM'], format='%d/%m/%Y', errors='coerce')
         df_sdr['MARCADA EM'] = pd.to_datetime(df_sdr['MARCADA EM'], format='%d/%m/%Y', errors='coerce')
+        df_discadora['DATA'] = pd.to_datetime(df_discadora['DATA'], format='%d/%m/%Y', errors='coerce')
         
         return df_sdr, df_discadora
 
@@ -821,11 +823,15 @@ def pag_sdr(df_sdr, df_discadora):
     # Carregar dados
     df_sdr, df_discadora = preparar_dados()
 
+    ##############################################################
+    ##########             1ª Linha - FILTROS          ###########
+    ##############################################################
+
     # FILTROS
     st.subheader("🔍 Filtros")
 
     # Criar colunas para os filtros
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         sdr_options = st.multiselect(
@@ -835,27 +841,20 @@ def pag_sdr(df_sdr, df_discadora):
         )
 
     with col2:
-        status_options = st.multiselect(
-            "STATUS",
-            options=['TODOS'] + list(df_sdr['STATUS'].unique()),
-            default=['TODOS']
-        )
-
-    with col3:
         consultor_options = st.multiselect(
             "CONSULTOR",
             options=['TODOS'] + list(df_sdr['CONSULTOR'].unique()),
             default=['TODOS']
         )
 
-    with col4:
+    with col3:
         origem_option = st.selectbox(
             "ORIGEM",
             options=['Todos'] + list(df_sdr['ORIGEM'].unique()),
             index=0
         )
 
-    with col5:
+    with col4:
         # Data mínima e máxima para o filtro
         min_date = df_sdr['IRÁ SER FEITA EM'].min()
         max_date = df_sdr['IRÁ SER FEITA EM'].max()
@@ -867,7 +866,7 @@ def pag_sdr(df_sdr, df_discadora):
             max_value=max_date
         )
 
-    with col6:
+    with col5:
         min_date_marcada = df_sdr['MARCADA EM'].min()
         max_date_marcada = df_sdr['MARCADA EM'].max()
         
@@ -880,14 +879,19 @@ def pag_sdr(df_sdr, df_discadora):
 
     # Aplicar filtros
     df_sdr_filtered = df_sdr.copy()
+    df_discadora_filtered = df_discadora.copy()
 
     # Filtro SDR
     if 'TODOS' not in sdr_options and sdr_options:
+        # Filtra df_sdr_filtered pelas SDRs selecionadas
         df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['SDR'].isin(sdr_options)]
-
-    # Filtro STATUS
-    if 'TODOS' not in status_options and status_options:
-        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['STATUS'].isin(status_options)]
+        
+        # Seleciona colunas correspondentes às SDRs em df_discadora
+        colunas_validas = [sdr for sdr in sdr_options if sdr in df_discadora.columns]
+        df_discadora_filtered = df_discadora_filtered[['DATA'] + colunas_validas]
+    else:
+        # Seleciona todas as colunas exceto 'DATA'
+        colunas_validas = [col for col in df_discadora_filtered.columns if col != 'DATA']
 
     # Filtro CONSULTOR
     if 'TODOS' not in consultor_options and consultor_options:
@@ -904,6 +908,10 @@ def pag_sdr(df_sdr, df_discadora):
             (df_sdr_filtered['IRÁ SER FEITA EM'] >= pd.Timestamp(start_date)) &
             (df_sdr_filtered['IRÁ SER FEITA EM'] <= pd.Timestamp(end_date))
         ]
+        df_discadora_filtered = df_discadora_filtered[
+            (df_discadora_filtered['DATA'] >= pd.Timestamp(start_date)) &
+            (df_discadora_filtered['DATA'] <= pd.Timestamp(end_date))
+        ]
 
     if len(data_marcada) == 2:
         start_date_marcada, end_date_marcada = data_marcada
@@ -911,58 +919,172 @@ def pag_sdr(df_sdr, df_discadora):
             (df_sdr_filtered['MARCADA EM'] >= pd.Timestamp(start_date_marcada)) &
             (df_sdr_filtered['MARCADA EM'] <= pd.Timestamp(end_date_marcada))
         ]
+        df_discadora_filtered = df_discadora_filtered[
+            (df_discadora_filtered['DATA'] >= pd.Timestamp(start_date_marcada)) &
+            (df_discadora_filtered['DATA'] <= pd.Timestamp(end_date_marcada))
+        ]
 
     st.markdown("---")
 
+    ##############################################################
+    ##########                  2ª Linha               ###########
+    ##############################################################
+
     # MÉTRICAS E GRÁFICOS
-    col1, col2, col3 = st.columns([1, 4, 2])
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
-        # Métrica de número de eventos
-        num_eventos = len(df_sdr_filtered)
+        pessoas_faladas = df_discadora_filtered[colunas_validas].sum().sum()
         st.metric(
-            label="📅 Número de Eventos",
-            value=num_eventos
+            label="Pessoas Faladas",
+            value=pessoas_faladas
         )
 
- 
-    with col2:
-        # Extração da coluna
-        patrimonio_data = df_sdr_filtered['PATRIMÔNIO'].dropna()
-
-        # Cria os bins manualmente
-        counts, bin_edges = np.histogram(patrimonio_data, bins=20)
-
-        # Calcula o centro de cada bin (para o eixo x)
-        bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
-
-        # Define o limite do eixo Y como 1.2x o maior valor
-        max_count = counts.max()
-        y_limit = max_count * 1.2
-
-        # Cria o gráfico manualmente
-        fig_hist = go.Figure(data=[
-            go.Bar(
-                x=bin_centers,
-                y=counts,
-                text=counts,
-                textposition='outside',
-                marker_color='#1f77b4'
-            )
-        ])
-
-        fig_hist.update_layout(
-            title='📈 Distribuição do Patrimônio',
-            xaxis_title='Patrimônio (R$)',
-            yaxis_title='Frequência',
-            height=400,
-            yaxis=dict(range=[0, y_limit])
+    with col2: 
+        # Contar leads que possuem 'r.marcada' na coluna LOG
+        reunioes_marcadas = df_sdr_filtered['LOG'].str.contains('r.marcada', na=False).sum()
+        st.metric(
+            label="Reuniões Marcadas",
+            value=reunioes_marcadas
         )
-
-        st.plotly_chart(fig_hist, use_container_width=True)
-
-
+    
     with col3:
+        # Contar leads que possuem 'r.realizada' na coluna LOG
+        reunioes_realizadas = df_sdr_filtered['LOG'].str.contains('r.realizada', na=False).sum()
+        st.metric(
+            label = "Reuniões Realizadas",
+            value = reunioes_realizadas
+        )
+
+    with col4:
+        # Contar leads que possuem 'no-show' na coluna LOG
+        no_show = df_sdr_filtered['LOG'].str.contains('no-show', na=False).sum()
+        st.metric(
+            label = "No Show",
+            value = no_show
+        )
+ 
+    with col5:
+        # Contar leads que possuem 'c.assinado' na coluna LOG
+        contratos_assinados = df_sdr_filtered['LOG'].str.contains('c.assinado', na=False).sum()
+        st.metric(
+            label = "Contratos Assinados",
+            value = contratos_assinados
+        )
+    
+    ##############################################################
+    ##########                3ª Linha                 ###########
+    ##############################################################
+    
+    col1, col2 = st.columns(2)
+
+    with col1:
+         # Etapas e valores coletados anteriormente
+        etapas = [
+            "Reuniões Marcadas",
+            "Reuniões Realizadas",
+            "Contratos Assinados"
+        ]
+        
+        quantidades = [
+            reunioes_marcadas,
+            reunioes_realizadas,
+            contratos_assinados
+        ]
+
+        # Taxas de conversão entre etapas
+        taxas = []
+        for i in range(len(quantidades) - 1):
+            de = quantidades[i]
+            para = quantidades[i + 1]
+            taxa = (para / de) * 100 if de > 0 else 0
+            taxas.append(f"{taxa:.1f}%")
+
+        # Posição dos elementos (ajustável se necessário)
+        posicoes_y_etapas = [0.91, 0.53, 0.18]
+        posicoes_y_taxas = [0.69, 0.30]
+
+        # Criação do DataFrame para o funil
+        df_funnel = pd.DataFrame({
+            "Etapa": etapas,
+            "Quantidade": quantidades
+        })
+
+        # Criar gráfico do funil
+        fig = px.funnel(
+            df_funnel,
+            y="Etapa",
+            x="Quantidade",
+            color_discrete_sequence=["#bfa94c"]
+        )
+
+        # Remover texto automático
+        fig.update_traces(text=None)
+
+        # Anotações: Etapas
+        for etapa, y in zip(etapas, posicoes_y_etapas):
+            fig.add_annotation(
+                xref="paper", yref="paper",
+                x=0.5, y=y,
+                text=f"<b>{etapa}:</b>",
+                showarrow=False,
+                font=dict(size=18, color="#444444")
+            )
+
+        # Anotações: Taxas de conversão
+        for i, y in enumerate(posicoes_y_taxas):
+            fig.add_annotation(
+                xref="paper", yref="paper",
+                x=0.5, y=y,
+                text=f"⬇️ {taxas[i]}",
+                showarrow=False,
+                font=dict(size=14, color="black")
+            )
+
+        # Layout final do gráfico
+        fig.update_layout(
+            title="Funil de Conversão",
+            font=dict(size=18),
+            margin=dict(t=20, b=0, l=0, r=0),
+            height=480,
+            showlegend=False,
+            yaxis=dict(showticklabels=False, title=None)
+        )
+
+        # Exibir o gráfico no Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Conversão final (da 1ª para a última etapa)
+        conv_final = round((quantidades[-1] / quantidades[0]) * 100, 1) if quantidades[0] != 0 else 0
+        st.markdown(
+            f"""
+            <div style='text-align: center; font-size: 18px; font-weight: bold;'>
+                Conv total: ⬇️ {conv_final:.2f}%
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col2:
+        st.write()
+
+    ##############################################################
+    ##########                  4ª Linha               ###########
+    ##############################################################
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader('Marcadas para hoje')
+        # Filtrar pela data de hoje e status
+        hoje = datetime.today().date()
+        df_hoje = df_sdr_filtered[
+            (df_sdr_filtered['STATUS'] == 'MARCADA/PENDENTE') &
+            (df_sdr_filtered['IRÁ SER FEITA EM'].dt.date == hoje)
+        ]
+
+        st.dataframe(df_hoje)
+    
+    with col2:
         # Gráfico de pizza - Temperatura do Lead
         temp_data = df_sdr_filtered['TEMPERATURA DO LEAD'].value_counts()
         
@@ -997,64 +1119,101 @@ def pag_sdr(df_sdr, df_discadora):
         else:
             st.info("Não há dados de temperatura válidos para exibir")
 
-    # Gráficos de barras para as datas
-    col1, col2 = st.columns(2)
+    ##############################################################
+    ##########                  5ª Linha               ###########
+    ##############################################################
+
+    col1, col2 = st.columns([1,4])
 
     with col1:
-        # Gráfico de barras - IRÁ SER FEITA EM
-        if not df_sdr_filtered['IRÁ SER FEITA EM'].isna().all():
-            data_counts = df_sdr_filtered['IRÁ SER FEITA EM'].dt.date.value_counts().sort_index()
+        st.subheader("Ranking Mensal")
+        # Criar colunas de mês/ano
+        df_discadora['MES_ANO'] = df_discadora['DATA'].dt.strftime('%m/%Y')
+        df_sdr['MES_ANO'] = df_sdr['MARCADA EM'].dt.strftime('%m/%Y')
 
-            max_count = data_counts.max()
-            y_limit = max_count * 1.2
+        # Obter meses/anos disponíveis em ambos os DataFrames
+        meses_discadora = set(df_discadora['MES_ANO'].dropna())
+        meses_sdr = set(df_sdr['MES_ANO'].dropna())
+        meses_comuns = sorted(meses_discadora & meses_sdr, reverse=True)
 
-            fig_bar1 = px.bar(
-                x=data_counts.index,
-                y=data_counts.values,
-                title='📅 Reuniões por Data - IRÁ SER FEITA EM',
-                color_discrete_sequence=['#2E8B57']
-            )
-            fig_bar1.update_layout(
-                xaxis_title="Data",
-                yaxis_title="Quantidade",
-                height=400,
-                yaxis=dict(range=[0, y_limit])
-            )
-            fig_bar1.update_traces(
-                texttemplate='%{y}',
-                textposition='outside'
-            )
-            st.plotly_chart(fig_bar1, use_container_width=True)
-        else:
-            st.info("Não há dados de data válidos para 'IRÁ SER FEITA EM'")
+        # Selectbox para o mês/ano
+        mes_selecionado = st.selectbox("Selecione o mês/ano:", meses_comuns)
 
-    with col2:
-        # Gráfico de barras - MARCADA EM
-        if not df_sdr_filtered['MARCADA EM'].isna().all():
-            data_counts_marcada = df_sdr_filtered['MARCADA EM'].dt.date.value_counts().sort_index()
+        # Aplicar filtro nos dois DataFrames
+        df_discadora_filtrado = df_discadora[df_discadora['MES_ANO'] == mes_selecionado]
+        df_sdr_filtrado = df_sdr[df_sdr['MES_ANO'] == mes_selecionado]
 
-            max_count_marcada = data_counts_marcada.max()
-            y_limit_marcada = max_count_marcada * 1.2
+    # 1. Total de pessoas faladas por SDR
+    try:
+        # Verificar se as colunas existem antes de tentar removê-las
+        colunas_para_remover = [col for col in ["DATA", "MES_ANO"] if col in df_discadora_filtrado.columns]
+        df_pessoas_faladas = df_discadora_filtrado.drop(columns=colunas_para_remover).sum().reset_index()
+        df_pessoas_faladas.columns = ['SDR', 'PESSOAS_FALADAS']
+    except Exception as e:
+        st.error(f"Erro ao calcular pessoas faladas: {e}")
+        st.write("Colunas disponíveis:", df_discadora_filtrado.columns.tolist())
 
-            fig_bar2 = px.bar(
-                x=data_counts_marcada.index,
-                y=data_counts_marcada.values,
-                title='📅 Reuniões por Data - MARCADA EM',
-                color_discrete_sequence=['#FF6347']
-            )
-            fig_bar2.update_layout(
-                xaxis_title="Data",
-                yaxis_title="Quantidade",
-                height=400,
-                yaxis=dict(range=[0, y_limit_marcada])
-            )
-            fig_bar2.update_traces(
-                texttemplate='%{y}',
-                textposition='outside'
-            )
-            st.plotly_chart(fig_bar2, use_container_width=True)
-        else:
-            st.info("Não há dados de data válidos para 'MARCADA EM'")
+    # 2. Total de reuniões marcadas por SDR
+    reunioes_marcadas = df_sdr_filtrado[df_sdr_filtrado['LOG'].str.contains('MARCADA', case=False, na=False)]
+    df_reunioes_marcadas = reunioes_marcadas.groupby('SDR').size().reset_index(name='REUNIOES_MARCADAS')
+
+    # 3. Pipeline por SDR (considerando reuniões com 'CONTRATO ASSINADO')
+    df_sdr_filtrado['PATRIMÔNIO'] = pd.to_numeric(df_sdr_filtrado['PATRIMÔNIO'], errors='coerce').fillna(0)
+    df_pipeline = df_sdr_filtrado.groupby('SDR')['PATRIMÔNIO'].sum().reset_index(name='PIPELINE')
+
+    # 4. Unificar todos os dados
+    df_ranking = df_pessoas_faladas.merge(df_reunioes_marcadas, on='SDR', how='left') \
+                                    .merge(df_pipeline, on='SDR', how='left')
+
+    # Preencher NaN com 0
+    df_ranking.fillna(0, inplace=True)
+
+    # 5. Eficiência
+    df_ranking['EFICIENCIA'] = df_ranking['REUNIOES_MARCADAS'] / df_ranking['PESSOAS_FALADAS']
+    df_ranking['EFICIENCIA'] = df_ranking['EFICIENCIA'].fillna(0)
+
+    # Função de normalização
+    def normalizar(coluna):
+        max_val = coluna.max()
+        return coluna / max_val if max_val > 0 else 0
+
+    # Aplicar normalização
+    df_ranking['NORM_PESSOAS'] = normalizar(df_ranking['PESSOAS_FALADAS'])
+    df_ranking['NORM_REUNIOES'] = normalizar(df_ranking['REUNIOES_MARCADAS'])
+    df_ranking['NORM_EFICIENCIA'] = normalizar(df_ranking['EFICIENCIA'])
+    df_ranking['NORM_PIPELINE'] = normalizar(df_ranking['PIPELINE'])
+
+    # Pesos (baseados na imagem)
+    pesos = {
+        'NORM_PESSOAS': 0.75,
+        'NORM_REUNIOES': 0.5,
+        'NORM_EFICIENCIA': 0.75,
+        'NORM_PIPELINE': 0.25
+    }
+
+    # Cálculo da pontuação total
+    df_ranking['TOTAL'] = (
+        df_ranking['NORM_PESSOAS'] * pesos['NORM_PESSOAS'] +
+        df_ranking['NORM_REUNIOES'] * pesos['NORM_REUNIOES'] +
+        df_ranking['NORM_EFICIENCIA'] * pesos['NORM_EFICIENCIA'] +
+        df_ranking['NORM_PIPELINE'] * pesos['NORM_PIPELINE']
+    )
+
+    # Organizar colunas para exibição final
+    colunas_exibir = [
+        'SDR', 'PESSOAS_FALADAS', 'NORM_PESSOAS',
+        'REUNIOES_MARCADAS', 'NORM_REUNIOES',
+        'EFICIENCIA', 'NORM_EFICIENCIA',
+        'PIPELINE', 'NORM_PIPELINE',
+        'TOTAL'
+    ]
+
+    df_resultado_final = df_ranking[colunas_exibir].sort_values(by='TOTAL', ascending=False)
+    st.dataframe(df_resultado_final)
+
+
+
+
 
     # Tabela de dados filtrados
     st.markdown("---")
