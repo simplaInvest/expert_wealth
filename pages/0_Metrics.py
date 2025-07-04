@@ -19,7 +19,7 @@ import random
 from datetime import datetime, timedelta
 import re
 
-from funcs import calcular_taxas, projetar_dados, carregar_dataframes
+from funcs import projetar_dados, carregar_dataframes
 from sidebar import setup_sidebar
 
 

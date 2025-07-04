@@ -15,6 +15,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import random
 import re
+from streamlit_extras.metric_cards import style_metric_cards
 
 def carregar_planilha(df_name, sheet_url: str, nome_aba: str = "Página1"):
     if df_name not in st.session_state:
@@ -70,16 +71,6 @@ def adicionar_time(df_name, df_evento, df_metas):
 
     return df_merged
 
-def calcular_taxas(valores_dict):
-    etapas = list(valores_dict.items())
-    taxas = []
-    for i in range(len(etapas)-1):
-        atual = etapas[i][1]
-        proximo = etapas[i+1][1]
-        taxa = (proximo / atual * 100) if atual > 0 else 0
-        taxas.append(f"{taxa:.2f}%")
-    return taxas
-
 def carregar_dataframes():
 
     planilhas_com_erro = []
@@ -119,7 +110,7 @@ def carregar_dataframes():
         planilhas_com_erro.append(f"Captação: {e}")
     
     try:
-        df_sdr = carregar_planilha('df_sdr', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS')
+        df_sdr = carregar_planilha('df_sdr', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS REUNIOES')
     except Exception as e:
         planilhas_com_erro.append(f"Dados_SDR: {e}")
 
@@ -471,55 +462,6 @@ def projetar_dados(
             )
 
         st.plotly_chart(fig, use_container_width=True)
-
-    #########################################
-        # def calcular_taxas(d):
-        #     v = list(d.values())
-        #     return [f"{(v[i+1]/v[i]*100):.1f}%" if v[i] else "0.0%" for i in range(len(v)-1)]
-
-        # taxas_conversao = calcular_taxas(valores)
-        # taxas_float = [float(t.replace('%', '')) for t in taxas_conversao]
-        # norm = mcolors.Normalize(vmin=-100, vmax=100)
-        # cmap = cm.get_cmap('Greens')
-
-        # st.markdown("""
-        # <div style="margin-bottom: 0px; font-size: 22px; font-weight: 600;">
-        #     Conversão entre Etapas
-        # </div>
-        # <hr style="margin-top: 20px; margin-bottom: 10px;">
-        # """, unsafe_allow_html=True)
-
-        # for i in range(len(etapas) - 1):
-        #     cor_rgb = cmap(norm(taxas_float[i]))[:3]
-        #     cor_hex = mcolors.to_hex(cor_rgb)
-
-        #     st.markdown(
-        #         f"""
-        #         <div style="font-size: 15px; margin-bottom: 20px;">
-        #             <strong>{etapas[i]}</strong> ➡️ <strong>{etapas[i+1]}</strong>:
-        #             <span style="color: {cor_hex}; font-weight: bold;">{taxas_conversao[i]}</span>
-        #         </div>
-        #         <hr style="margin-top: 20px; margin-bottom: 20px;">
-        #         """,
-        #         unsafe_allow_html=True
-        #     )
-
-
-        # conv_final = (quantidades[-1] / quantidades[0]) * 100 if quantidades[0] > 0 else 0
-        # st.markdown(
-        #     f"""
-        #     <div style="margin-top: 1rem; background-color:#f0f0f0; border-radius:10px; 
-        #                 padding:1rem; text-align:center; border: 1px solid #ccc;">
-        #         <div style="font-size: 20px; font-weight: bold; color: #388e3c;">
-        #             {conv_final:.2f}%
-        #         </div>
-        #         <div style="font-size: 14px;">
-        #             dos leads chegaram até o final do funil
-        #         </div>
-        #     </div>
-        #     """,
-        #     unsafe_allow_html=True
-        # )
 
     ##############################################################################
     ##                                   rankings                               ##
@@ -971,12 +913,15 @@ def pag_sdr(df_sdr, df_discadora):
             label = "Contratos Assinados",
             value = contratos_assinados
         )
-    
+
+    style_metric_cards(background_color="#292D34", border_size_px=2, 
+                        border_color="#292D34", border_radius_px=20, 
+                        border_left_color="#bfa94c", box_shadow='True')
     ##############################################################
     ##########                3ª Linha                 ###########
     ##############################################################
     
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([2,1])
 
     with col1:
          # Etapas e valores coletados anteriormente
@@ -1064,8 +1009,47 @@ def pag_sdr(df_sdr, df_discadora):
             """,
             unsafe_allow_html=True
         )
+
+
     with col2:
-        st.write()
+        def render_card(texto_descricao, valor_formatado, emoji="📊"):
+            st.markdown(f"""
+                <div style="
+                    background: linear-gradient(135deg, #2b2e3b, #1f222d);
+                    padding: 25px 20px;
+                    border-radius: 16px;
+                    border: 1px solid #3a3d4a;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    margin-bottom: 25px;
+                    text-align: center;
+                    font-family: 'Segoe UI', 'Roboto', sans-serif;
+                ">
+                    <div style="font-size: 16px; color: #bbbbbb; margin-bottom: 12px;">
+                        {emoji} {texto_descricao}
+                    </div>
+                    <div style="font-size: 28px; color: #ffffff; font-weight: 600;">
+                        {valor_formatado}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+        render_card(
+            texto_descricao="Pessoas necessárias para marcar 1 reunião",
+            valor_formatado=f"{int(pessoas_faladas / reunioes_marcadas)} pessoas",
+            emoji="🗣️"
+        )
+
+        render_card(
+            texto_descricao="Reuniões marcadas para realizar 1",
+            valor_formatado=f"{int(reunioes_marcadas / reunioes_realizadas)} reuniões",
+            emoji="📅"
+        )
+
+        render_card(
+            texto_descricao="Reuniões realizadas para fechar 1 contrato",
+            valor_formatado=f"{int(reunioes_realizadas / contratos_assinados)} reuniões",
+            emoji="📝"
+        )
 
     ##############################################################
     ##########                  4ª Linha               ###########
@@ -1154,7 +1138,7 @@ def pag_sdr(df_sdr, df_discadora):
         st.write("Colunas disponíveis:", df_discadora_filtrado.columns.tolist())
 
     # 2. Total de reuniões marcadas por SDR
-    reunioes_marcadas = df_sdr_filtrado[df_sdr_filtrado['LOG'].str.contains('MARCADA', case=False, na=False)]
+    reunioes_marcadas = df_sdr_filtrado[df_sdr_filtrado['LOG'].str.contains('r.marcada', case=False, na=False)]
     df_reunioes_marcadas = reunioes_marcadas.groupby('SDR').size().reset_index(name='REUNIOES_MARCADAS')
 
     # 3. Pipeline por SDR (considerando reuniões com 'CONTRATO ASSINADO')
@@ -1212,9 +1196,6 @@ def pag_sdr(df_sdr, df_discadora):
     st.dataframe(df_resultado_final)
 
 
-
-
-
     # Tabela de dados filtrados
     st.markdown("---")
     st.subheader("📋 Dados Filtrados")
@@ -1223,3 +1204,4 @@ def pag_sdr(df_sdr, df_discadora):
     # Instruções para usar com dados reais
     st.markdown("---")
    
+# ===============================
