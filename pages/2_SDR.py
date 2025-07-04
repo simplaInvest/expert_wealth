@@ -18,7 +18,6 @@ import matplotlib.colors as mcolors
 import random
 from datetime import datetime, timedelta
 import re
-from streamlit_option_menu import option_menu
 
 from funcs import carregar_dataframes, pag_sdr
 from sidebar import setup_sidebar
