@@ -15,6 +15,8 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import random
 import re
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from streamlit_extras.metric_cards import style_metric_cards
 
 def carregar_planilha(df_name, sheet_url: str, nome_aba: str = "Página1"):
@@ -920,98 +922,90 @@ def pag_sdr(df_sdr, df_discadora):
     ##############################################################
     ##########                3ª Linha                 ###########
     ##############################################################
+    col1, col2, col3 = st.columns([2,2,2])
     
-    col1, col2 = st.columns([2,1])
-
     with col1:
-         # Etapas e valores coletados anteriormente
-        etapas = [
-            "Reuniões Marcadas",
-            "Reuniões Realizadas",
-            "Contratos Assinados"
-        ]
-        
-        quantidades = [
-            reunioes_marcadas,
-            reunioes_realizadas,
-            contratos_assinados
-        ]
-
-        # Taxas de conversão entre etapas
-        taxas = []
-        for i in range(len(quantidades) - 1):
-            de = quantidades[i]
-            para = quantidades[i + 1]
-            taxa = (para / de) * 100 if de > 0 else 0
-            taxas.append(f"{taxa:.1f}%")
-
-        # Posição dos elementos (ajustável se necessário)
-        posicoes_y_etapas = [0.91, 0.53, 0.18]
-        posicoes_y_taxas = [0.69, 0.30]
-
-        # Criação do DataFrame para o funil
-        df_funnel = pd.DataFrame({
-            "Etapa": etapas,
-            "Quantidade": quantidades
-        })
-
-        # Criar gráfico do funil
-        fig = px.funnel(
-            df_funnel,
-            y="Etapa",
-            x="Quantidade",
-            color_discrete_sequence=["#bfa94c"]
-        )
-
-        # Remover texto automático
-        fig.update_traces(text=None)
-
-        # Anotações: Etapas
-        for etapa, y in zip(etapas, posicoes_y_etapas):
-            fig.add_annotation(
-                xref="paper", yref="paper",
-                x=0.5, y=y,
-                text=f"<b>{etapa}:</b>",
-                showarrow=False,
-                font=dict(size=18, color="#444444")
-            )
-
-        # Anotações: Taxas de conversão
-        for i, y in enumerate(posicoes_y_taxas):
-            fig.add_annotation(
-                xref="paper", yref="paper",
-                x=0.5, y=y,
-                text=f"⬇️ {taxas[i]}",
-                showarrow=False,
-                font=dict(size=14, color="black")
-            )
-
-        # Layout final do gráfico
-        fig.update_layout(
-            title="Funil de Conversão",
-            font=dict(size=18),
-            margin=dict(t=20, b=0, l=0, r=0),
-            height=480,
-            showlegend=False,
-            yaxis=dict(showticklabels=False, title=None)
-        )
-
-        # Exibir o gráfico no Streamlit
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Conversão final (da 1ª para a última etapa)
-        conv_final = round((quantidades[-1] / quantidades[0]) * 100, 1) if quantidades[0] != 0 else 0
-        st.markdown(
-            f"""
-            <div style='text-align: center; font-size: 18px; font-weight: bold;'>
-                Conv total: ⬇️ {conv_final:.2f}%
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
+        st.subheader("Funil SDR's")
+        st.image('Funil.png', output_format = 'PNG', use_container_width = True)
 
     with col2:
+        # Função para renderizar cards de métricas principais
+        def render_metric_card(titulo, valor, emoji="📊", cor_primaria="#4CAF50"):
+            html = f"""
+            <div style="background: linear-gradient(135deg, #1e1e1e, #2d2d2d); padding: 12px; border-radius: 8px; border-left: 3px solid {cor_primaria}; box-shadow: 0 2px 4px rgba(0,0,0,0.3); margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 11px; color: #b0b0b0; margin-bottom: 4px;">{titulo}</div>
+                        <div style="font-size: 24px; color: #fff; font-weight: bold;">{valor}</div>
+                    </div>
+                    <div style="font-size: 24px; opacity: 0.7;">{emoji}</div>
+                </div>
+            </div>
+            """
+            st.markdown(html, unsafe_allow_html=True)
+
+        # Função para renderizar cards de conversão
+        def render_conversion_card(conversao_texto, cor="#90CAF9", icone="↗"):
+            html = f"""
+            <div style="background: rgba(40, 40, 40, 0.8); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; border-left: 2px solid {cor};">
+                <div style="font-size: 11px; color: {cor}; text-align: center;">
+                    {icone} {conversao_texto}
+                </div>
+            </div>
+            """
+            st.markdown(html, unsafe_allow_html=True)
+
+        # Função para renderizar cards de conversão total (destacada)
+        def render_total_conversion_card(conversao_texto):
+            html = f"""
+            <div style="background: rgba(76, 175, 80, 0.15); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; border-left: 2px solid #4CAF50;">
+                <div style="font-size: 11px; color: #A5D6A7; text-align: center; font-weight: bold;">
+                    🎯 {conversao_texto}
+                </div>
+            </div>
+            """
+            st.markdown(html, unsafe_allow_html=True)
+
+        # Calcular conversões
+        conv1 = reunioes_marcadas / pessoas_faladas * 100 if pessoas_faladas else 0
+        conv2 = reunioes_realizadas / reunioes_marcadas * 100 if reunioes_marcadas else 0
+        conv3 = contratos_assinados / reunioes_realizadas * 100 if reunioes_realizadas else 0
+        conv_total = contratos_assinados / pessoas_faladas * 100 if pessoas_faladas else 0
+
+        # Render cards principais
+        render_metric_card(
+            titulo="Pessoas Faladas",
+            valor=f"{pessoas_faladas:,}",
+            emoji="🗣",
+            cor_primaria="#3498db"
+        )
+
+        render_metric_card(
+            titulo="Reuniões Marcadas",
+            valor=f"{reunioes_marcadas:,}",
+            emoji="📅",
+            cor_primaria="#f39c12"
+        )
+        render_conversion_card(f"Conversão: {conv1:.1f}%", "#FFA726")
+
+        render_metric_card(
+            titulo="Reuniões Realizadas",
+            valor=f"{reunioes_realizadas:,}",
+            emoji="✅",
+            cor_primaria="#27ae60"
+        )
+        render_conversion_card(f"Conversão: {conv2:.1f}%", "#66BB6A")
+
+        render_metric_card(
+            titulo="Contratos Assinados",
+            valor=f"{contratos_assinados:,}",
+            emoji="📝",
+            cor_primaria="#e74c3c"
+        )
+        render_conversion_card(f"Conversão: {conv3:.1f}%", "#EF5350")
+        render_total_conversion_card(f"Conversão Total: {conv_total:.1f}%")
+
+    with col3:
         def render_card(texto_descricao, valor_formatado, emoji="📊"):
             st.markdown(f"""
                 <div style="
@@ -1106,102 +1100,796 @@ def pag_sdr(df_sdr, df_discadora):
     ##############################################################
     ##########                  5ª Linha               ###########
     ##############################################################
+    # Função para extrair semana e ano de uma data
+    def get_week_year(date):
+        if pd.isna(date):
+            return None
+        return f"{date.year}-W{date.isocalendar()[1]:02d}"
 
-    col1, col2 = st.columns([1,4])
+    # Função para formatar a semana para exibição
+    def format_week_display(week_str):
+        if not week_str:
+            return "Sem data"
+        year, week = week_str.split('-W')
+        # Encontrar a segunda-feira daquela semana
+        monday = datetime.strptime(f'{year}-W{week}-1', "%Y-W%W-%w")
+        sunday = monday + pd.Timedelta(days=6)
+        return f"Semana {week}/{year} ({monday.strftime('%d/%m')} a {sunday.strftime('%d/%m/%Y')})"
 
-    with col1:
-        st.subheader("Ranking Mensal")
-        # Criar colunas de mês/ano
-        df_discadora['MES_ANO'] = df_discadora['DATA'].dt.strftime('%m/%Y')
-        df_sdr['MES_ANO'] = df_sdr['MARCADA EM'].dt.strftime('%m/%Y')
+    # Adicionar colunas de semana aos dataframes
+    df_sdr['semana_ira_ser_feita'] = df_sdr['IRÁ SER FEITA EM'].apply(get_week_year)
+    df_sdr['semana_marcada'] = df_sdr['MARCADA EM'].apply(get_week_year)
+    df_discadora['semana'] = df_discadora['DATA'].apply(get_week_year)
 
-        # Obter meses/anos disponíveis em ambos os DataFrames
-        meses_discadora = set(df_discadora['MES_ANO'].dropna())
-        meses_sdr = set(df_sdr['MES_ANO'].dropna())
-        meses_comuns = sorted(meses_discadora & meses_sdr, reverse=True)
+    # Obter todas as semanas únicas
+    semanas_sdr = set()
+    semanas_sdr.update(df_sdr['semana_ira_ser_feita'].dropna().unique())
+    semanas_sdr.update(df_sdr['semana_marcada'].dropna().unique())
+    semanas_discadora = set(df_discadora['semana'].dropna().unique())
+    todas_semanas = sorted(semanas_sdr.union(semanas_discadora))
 
-        # Selectbox para o mês/ano
-        mes_selecionado = st.selectbox("Selecione o mês/ano:", meses_comuns)
+    # Criar um dicionário para o selectbox (formato amigável -> formato técnico)
+    opcoes_semana = {"Todas as semanas": "todas"}
+    for semana in todas_semanas:
+        opcoes_semana[format_week_display(semana)] = semana
 
-        # Aplicar filtro nos dois DataFrames
-        df_discadora_filtrado = df_discadora[df_discadora['MES_ANO'] == mes_selecionado]
-        df_sdr_filtrado = df_sdr[df_sdr['MES_ANO'] == mes_selecionado]
-
-    # 1. Total de pessoas faladas por SDR
-    try:
-        # Verificar se as colunas existem antes de tentar removê-las
-        colunas_para_remover = [col for col in ["DATA", "MES_ANO"] if col in df_discadora_filtrado.columns]
-        df_pessoas_faladas = df_discadora_filtrado.drop(columns=colunas_para_remover).sum().reset_index()
-        df_pessoas_faladas.columns = ['SDR', 'PESSOAS_FALADAS']
-    except Exception as e:
-        st.error(f"Erro ao calcular pessoas faladas: {e}")
-        st.write("Colunas disponíveis:", df_discadora_filtrado.columns.tolist())
-
-    # 2. Total de reuniões marcadas por SDR
-    reunioes_marcadas = df_sdr_filtrado[df_sdr_filtrado['LOG'].str.contains('r.marcada', case=False, na=False)]
-    df_reunioes_marcadas = reunioes_marcadas.groupby('SDR').size().reset_index(name='REUNIOES_MARCADAS')
-
-    # 3. Pipeline por SDR (considerando reuniões com 'CONTRATO ASSINADO')
-    df_sdr_filtrado['PATRIMÔNIO'] = pd.to_numeric(df_sdr_filtrado['PATRIMÔNIO'], errors='coerce').fillna(0)
-    df_pipeline = df_sdr_filtrado.groupby('SDR')['PATRIMÔNIO'].sum().reset_index(name='PIPELINE')
-
-    # 4. Unificar todos os dados
-    df_ranking = df_pessoas_faladas.merge(df_reunioes_marcadas, on='SDR', how='left') \
-                                    .merge(df_pipeline, on='SDR', how='left')
-
-    # Preencher NaN com 0
-    df_ranking.fillna(0, inplace=True)
-
-    # 5. Eficiência
-    df_ranking['EFICIENCIA'] = df_ranking['REUNIOES_MARCADAS'] / df_ranking['PESSOAS_FALADAS']
-    df_ranking['EFICIENCIA'] = df_ranking['EFICIENCIA'].fillna(0)
-
-    # Função de normalização
-    def normalizar(coluna):
-        max_val = coluna.max()
-        return coluna / max_val if max_val > 0 else 0
-
-    # Aplicar normalização
-    df_ranking['NORM_PESSOAS'] = normalizar(df_ranking['PESSOAS_FALADAS'])
-    df_ranking['NORM_REUNIOES'] = normalizar(df_ranking['REUNIOES_MARCADAS'])
-    df_ranking['NORM_EFICIENCIA'] = normalizar(df_ranking['EFICIENCIA'])
-    df_ranking['NORM_PIPELINE'] = normalizar(df_ranking['PIPELINE'])
-
-    # Pesos (baseados na imagem)
-    pesos = {
-        'NORM_PESSOAS': 0.75,
-        'NORM_REUNIOES': 0.5,
-        'NORM_EFICIENCIA': 0.75,
-        'NORM_PIPELINE': 0.25
-    }
-
-    # Cálculo da pontuação total
-    df_ranking['TOTAL'] = (
-        df_ranking['NORM_PESSOAS'] * pesos['NORM_PESSOAS'] +
-        df_ranking['NORM_REUNIOES'] * pesos['NORM_REUNIOES'] +
-        df_ranking['NORM_EFICIENCIA'] * pesos['NORM_EFICIENCIA'] +
-        df_ranking['NORM_PIPELINE'] * pesos['NORM_PIPELINE']
+    # Selectbox para escolher a semana
+    semana_selecionada = st.selectbox(
+        "Selecione a semana:",
+        options=list(opcoes_semana.keys()),
+        index=0
     )
 
-    # Organizar colunas para exibição final
-    colunas_exibir = [
-        'SDR', 'PESSOAS_FALADAS', 'NORM_PESSOAS',
-        'REUNIOES_MARCADAS', 'NORM_REUNIOES',
-        'EFICIENCIA', 'NORM_EFICIENCIA',
-        'PIPELINE', 'NORM_PIPELINE',
-        'TOTAL'
-    ]
+    # Obter o valor técnico da semana selecionada
+    semana_valor = opcoes_semana[semana_selecionada]
 
-    df_resultado_final = df_ranking[colunas_exibir].sort_values(by='TOTAL', ascending=False)
-    st.dataframe(df_resultado_final)
+    # Filtrar os dataframes
+    if semana_valor == "todas":
+        sdr_filtrado = df_sdr.copy()
+        discadora_filtrado = df_discadora.copy()
+        st.info("Mostrando dados de todas as semanas")
+    else:
+        # Filtrar SDR - considera registros onde qualquer uma das datas está na semana selecionada
+        sdr_filtrado = df_sdr[
+            (df_sdr['semana_ira_ser_feita'] == semana_valor) | 
+            (df_sdr['semana_marcada'] == semana_valor)
+        ].copy()
+        
+        # Filtrar Discadora
+        discadora_filtrado = df_discadora[df_discadora['semana'] == semana_valor].copy()
+        
+        st.success(f"Filtrado para: {semana_selecionada}")
 
+    # Remover colunas auxiliares de semana antes de exibir
+    colunas_remover_sdr = ['semana_ira_ser_feita', 'semana_marcada']
+    colunas_remover_discadora = ['semana']
+
+    sdr_filtrado = sdr_filtrado.drop(columns=[col for col in colunas_remover_sdr if col in sdr_filtrado.columns])
+    discadora_filtrado = discadora_filtrado.drop(columns=[col for col in colunas_remover_discadora if col in discadora_filtrado.columns])
+
+    def limpar_valor_monetario(valor):
+        if pd.isna(valor) or valor == '':
+            return 0
+        if isinstance(valor, str):
+            try:
+                return float(valor.replace('R$', '').replace('.', '').replace(',', '.').strip())
+            except ValueError:
+                return 0
+        return valor
+
+    def calcular_metricas_sdr(sdr_df, discadora_df):
+        # 1. Pessoas Faladas
+        sdrs_discadora = [col for col in discadora_df.columns if col not in ['', 'DATA']]
+        pessoas_faladas = {sdr: discadora_df[sdr].sum() for sdr in sdrs_discadora if sdr in discadora_df.columns}
+        
+        # 2. Reuniões Marcadas
+        reunioes_marcadas = {}
+        if 'LOG' in sdr_df.columns and 'SDR' in sdr_df.columns:
+            marcadas = sdr_df[sdr_df['LOG'].str.contains('r.marcada', case=False, na=False)]
+            reunioes_marcadas = marcadas.groupby('SDR').size().to_dict()
+
+        # 3. Pipeline
+        pipeline = {}
+        if 'PATRIMÔNIO' in sdr_df.columns and 'SDR' in sdr_df.columns:
+            sdr_df_copy = sdr_df.copy()
+            sdr_df_copy['patrimonio_limpo'] = sdr_df_copy['PATRIMÔNIO'].apply(limpar_valor_monetario)
+            pipeline = sdr_df_copy.groupby('SDR')['patrimonio_limpo'].sum().to_dict()
+        
+        # 4. Reuniões Realizadas
+        realizadas = sdr_df[sdr_df['LOG'].str.contains('r.realizada', case=False, na=False)]
+        reunioes_realizadas = realizadas.groupby('SDR').size().to_dict()
+        
+        # 5. Contratos Assinados
+        assinados = sdr_df[sdr_df['LOG'].str.contains('c.assinado', case=False, na=False)]
+        contratos_assinados = assinados.groupby('SDR').size().to_dict()
+
+        # SDRs únicos
+        todos_sdrs = set(pessoas_faladas) | set(sdr_df['SDR'].dropna().unique())
+
+        # Montar DataFrame inicial
+        df_ranking = pd.DataFrame([{
+            'SDR': sdr,
+            'Pessoas Faladas': pessoas_faladas.get(sdr, 0),
+            'Reuniões Marcadas': reunioes_marcadas.get(sdr, 0),
+            'Pipeline (R$)': pipeline.get(sdr, 0),
+            'Reuniões Realizadas': reunioes_realizadas.get(sdr, 0),
+            'Contratos Assinados': contratos_assinados.get(sdr, 0)
+        } for sdr in todos_sdrs])
+
+        # Normalizar colunas
+        colunas = ['Pessoas Faladas', 'Reuniões Marcadas', 'Pipeline (R$)', 'Reuniões Realizadas', 'Contratos Assinados']
+        scaler = MinMaxScaler()
+        df_normalizado = df_ranking.copy()
+        df_normalizado[colunas] = scaler.fit_transform(df_ranking[colunas])
+
+        # Aplicar pesos
+        pesos = {
+            'Pessoas Faladas': 0.75,
+            'Reuniões Marcadas': 0.5,
+            'Pipeline (R$)': 0.25,
+            'Reuniões Realizadas': 1,
+            'Contratos Assinados': 1
+        }
+        for col in colunas:
+            df_normalizado[f'{col} (Ponderado)'] = df_normalizado[col] * pesos[col]
+
+        # Calcular eficiência
+        df_normalizado['Eficiência'] = np.where(
+            df_normalizado['Pessoas Faladas (Ponderado)'] == 0,
+            0,
+            df_normalizado['Reuniões Marcadas (Ponderado)'] / df_normalizado['Pessoas Faladas (Ponderado)']
+        )
+                
+        # Normalizar eficiência
+        df_normalizado['Eficiência Normalizada'] = MinMaxScaler().fit_transform(df_normalizado[['Eficiência']])
+        df_normalizado['Eficiência Ponderada'] = df_normalizado['Eficiência Normalizada'] * 0.5
+
+        # Calcular Score Final
+        df_normalizado['Score Final'] = (
+            df_normalizado[[f'{col} (Ponderado)' for col in colunas]].sum(axis=1) +
+            df_normalizado['Eficiência Ponderada']
+        )
+
+        # Ordenar por Score Final
+        df_normalizado = df_normalizado.sort_values(by='Score Final', ascending=False).reset_index(drop=True)
+
+        return df_normalizado[['SDR'] + colunas + ['Eficiência', 'Score Final']]
+
+    # Calcular métricas
+    df_ranking = calcular_metricas_sdr(sdr_filtrado, discadora_filtrado)
+
+    # Captura separada do valor absoluto de Pessoas Faladas (do raw DataFrame)
+    sdrs_discadora = [col for col in discadora_filtrado.columns if col not in ['', 'DATA']]
+    pessoas_faladas_abs = {sdr: discadora_filtrado[sdr].sum() for sdr in sdrs_discadora}
+
+    # Criar DataFrame com SDR e PF absoluto
+    df_pf_abs = pd.DataFrame([
+        {'SDR': sdr, 'Pessoas Faladas Absoluto': pessoas_faladas_abs.get(sdr, 0)}
+        for sdr in df_ranking['SDR']
+    ])
+
+    # Mesclar ao ranking (mantém a ordem)
+    df_ranking = df_ranking.merge(df_pf_abs, on='SDR', how='left')
+
+    st.dataframe(df_ranking)
+
+    ##############################################################
+    ##########                  6ª Linha               ###########
+    ##############################################################
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        # GRÁFICO 1 — Score Final por SDR
+        st.subheader("Score Final por SDR")
+
+        fig1, ax1 = plt.subplots(figsize=(10, 0.5 * len(df_ranking)))
+        sdrs = df_ranking['SDR']
+        scores = df_ranking['Score Final']
+
+        # Cores: degradê do verde ao vermelho com base no rank
+        n = len(scores)
+        colors = plt.cm.RdYlGn(np.linspace(1, 0, n))  # verde (top) → vermelho (último)
+
+        bars = ax1.barh(sdrs, scores, color=colors)
+
+        # Anotar valores sobre as barras
+        for i, bar in enumerate(bars):
+            ax1.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height()/2,
+                    f"{scores.iloc[i]:.2f}", va='center')
+
+        ax1.set_xlabel("Score Final")
+        ax1.invert_yaxis()  # SDRs com maior score no topo
+        st.pyplot(fig1)
+
+    with col2:
+        st.subheader("Pessoas Faladas Absoluto por SDR (Meta = 280)")
+
+        fig2, ax2 = plt.subplots(figsize=(10, 0.5 * len(df_ranking)))
+
+        sdrs_pf = df_ranking['SDR']
+        valores_pf = df_ranking['Pessoas Faladas Absoluto']
+        colors_pf = ['green' if v >= 280 else 'red' for v in valores_pf]
+
+        bars_pf = ax2.barh(sdrs_pf, valores_pf, color=colors_pf)
+
+        for i, bar in enumerate(bars_pf):
+            ax2.text(bar.get_width() + 2, bar.get_y() + bar.get_height()/2,
+                    f"{valores_pf.iloc[i]:.0f}", va='center')
+
+        # Linha da meta
+        ax2.axvline(x=280, linestyle='--', color='black', label='Meta: 280 pessoas')
+        ax2.set_xlabel("Pessoas Faladas Absoluto")
+        ax2.invert_yaxis()
+        ax2.legend()
+        st.pyplot(fig2)
+
+
+
+    ##############################################################
+    ##########                  7ª Linha               ###########
+    ##############################################################
 
     # Tabela de dados filtrados
     st.markdown("---")
-    st.subheader("📋 Dados Filtrados")
-    st.dataframe(df_sdr_filtered, use_container_width=True)
+    with st.expander(label="Bases de dados"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Sdr_df")
+            st.dataframe(df_sdr_filtered, use_container_width=True)
+        
+        with col2:
+            st.subheader("Discadora_df")
+            st.dataframe(df_discadora_filtered, use_container_width=True)
 
     # Instruções para usar com dados reais
     st.markdown("---")
    
 # ===============================
+
+def pag_sdr_teste(df_sdr, df_discadora):
+    import streamlit as st
+    import pandas as pd
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from datetime import datetime, timedelta
+    import numpy as np
+    from plotly.subplots import make_subplots
+    
+    # Configuração da página
+    st.set_page_config(
+        page_title="SDR Analytics Dashboard",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # CSS personalizado para modo escuro profissional
+    st.markdown("""
+    <style>
+    .metric-card {
+        background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+        border: 1px solid #404040;
+        border-radius: 16px;
+        padding: 25px;
+        margin: 10px 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(191, 169, 76, 0.2);
+        border-color: #bfa94c;
+    }
+    
+    .metric-title {
+        font-size: 14px;
+        color: #a0a0a0;
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+    
+    .metric-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+    }
+    
+    .metric-delta {
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .metric-delta.positive {
+        color: #00d4aa;
+    }
+    
+    .metric-delta.negative {
+        color: #ff6b6b;
+    }
+    
+    .kpi-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-alta { background: #ff6b6b; color: white; }
+    .status-media { background: #ffd93d; color: #333; }
+    .status-baixa { background: #6bcf7f; color: white; }
+    
+    .sidebar-metric {
+        background: #1e1e2e;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+        border-left: 4px solid #bfa94c;
+    }
+    
+    .highlight-text {
+        color: #bfa94c;
+        font-weight: 600;
+    }
+    
+    .section-header {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 30px 0 20px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #bfa94c;
+    }
+    
+    .insight-box {
+        background: linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%);
+        border: 1px solid #404040;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 15px 0;
+        border-left: 4px solid #bfa94c;
+    }
+    
+    .insight-title {
+        color: #bfa94c;
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+    
+    .insight-text {
+        color: #e0e0e0;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Função para carregar e processar os dados
+    @st.cache_data
+    def preparar_dados():
+        # Processamento dos dados
+        df_sdr['IRÁ SER FEITA EM'] = pd.to_datetime(df_sdr['IRÁ SER FEITA EM'], format='%d/%m/%Y', errors='coerce')
+        df_sdr['MARCADA EM'] = pd.to_datetime(df_sdr['MARCADA EM'], format='%d/%m/%Y', errors='coerce')
+        df_discadora['DATA'] = pd.to_datetime(df_discadora['DATA'], format='%d/%m/%Y', errors='coerce')
+        
+        # Converter patrimônio para numérico
+        if 'PATRIMÔNIO' in df_sdr.columns:
+            df_sdr['PATRIMÔNIO'] = pd.to_numeric(df_sdr['PATRIMÔNIO'], errors='coerce').fillna(0)
+        
+        return df_sdr, df_discadora
+
+    # Função para criar métricas avançadas
+    def criar_metricas_avancadas(df_sdr_filtered, df_discadora_filtered, colunas_validas):
+        # Métricas base
+        pessoas_faladas = pd.to_numeric(df_discadora_filtered[colunas_validas].stack(), errors='coerce').sum()
+        reunioes_marcadas = df_sdr_filtered['LOG'].str.contains('r.marcada', na=False).sum()
+        reunioes_realizadas = df_sdr_filtered['LOG'].str.contains('r.realizada', na=False).sum()
+        no_show = df_sdr_filtered['LOG'].str.contains('no-show', na=False).sum()
+        contratos_assinados = df_sdr_filtered['LOG'].str.contains('c.assinado', na=False).sum()
+        
+        # Métricas avançadas
+        taxa_conversao_marcacao = (reunioes_marcadas / pessoas_faladas * 100) if pessoas_faladas > 0 else 0
+        taxa_conversao_realizacao = (reunioes_realizadas / reunioes_marcadas * 100) if reunioes_marcadas > 0 else 0
+        taxa_no_show = (no_show / reunioes_marcadas * 100) if reunioes_marcadas > 0 else 0
+        taxa_fechamento = (contratos_assinados / reunioes_realizadas * 100) if reunioes_realizadas > 0 else 0
+        
+        # Pipeline value
+        pipeline_value = df_sdr_filtered['PATRIMÔNIO'].sum() if 'PATRIMÔNIO' in df_sdr_filtered.columns else 0
+        
+        return {
+            'pessoas_faladas': pessoas_faladas,
+            'reunioes_marcadas': reunioes_marcadas,
+            'reunioes_realizadas': reunioes_realizadas,
+            'no_show': no_show,
+            'contratos_assinados': contratos_assinados,
+            'taxa_conversao_marcacao': taxa_conversao_marcacao,
+            'taxa_conversao_realizacao': taxa_conversao_realizacao,
+            'taxa_no_show': taxa_no_show,
+            'taxa_fechamento': taxa_fechamento,
+            'pipeline_value': pipeline_value
+        }
+
+    # Função para criar gráficos profissionais
+    def criar_grafico_tendencia(df_sdr_filtered, df_discadora_filtered):
+        # Agregar dados por data
+        df_sdr_daily = df_sdr_filtered.groupby(df_sdr_filtered['MARCADA EM'].dt.date).size().reset_index()
+        df_sdr_daily.columns = ['Data', 'Reuniões Marcadas']
+        
+        # Criar gráfico de tendência
+        fig = go.Figure()
+        
+        fig.add_trace(go.Scatter(
+            x=df_sdr_daily['Data'],
+            y=df_sdr_daily['Reuniões Marcadas'],
+            mode='lines+markers',
+            name='Reuniões Marcadas',
+            line=dict(color='#bfa94c', width=3),
+            marker=dict(color='#bfa94c', size=8),
+            fill='tonexty',
+            fillcolor='rgba(191, 169, 76, 0.1)'
+        ))
+        
+        fig.update_layout(
+            title='Tendência de Reuniões Marcadas',
+            xaxis_title='Data',
+            yaxis_title='Quantidade',
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            height=350
+        )
+        
+        return fig
+
+    # Header principal
+    st.markdown("""
+    <div style="text-align: center; padding: 20px 0;">
+        <h1 style="color: #ffffff; font-size: 48px; font-weight: 800; margin-bottom: 10px;">
+            📊 SDR Analytics Dashboard
+        </h1>
+        <p style="color: #a0a0a0; font-size: 18px; margin-bottom: 0;">
+            Inteligência de Vendas & Performance Analytics
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Carregar dados
+    df_sdr, df_discadora = preparar_dados()
+
+    # Sidebar com filtros elegantes
+    with st.sidebar:
+        st.markdown("### 🎯 Filtros Avançados")
+        
+        # Filtros existentes (mantendo a mesma lógica)
+        sdr_options = st.multiselect(
+            "👥 SDR",
+            options=['TODOS'] + list(df_sdr['SDR'].unique()),
+            default=['TODOS']
+        )
+
+        consultor_options = st.multiselect(
+            "🎯 CONSULTOR",
+            options=['TODOS'] + list(df_sdr['CONSULTOR'].unique()),
+            default=['TODOS']
+        )
+
+        origem_option = st.selectbox(
+            "📍 ORIGEM",
+            options=['Todos'] + list(df_sdr['ORIGEM'].unique()),
+            index=0
+        )
+
+        # Filtros de data
+        st.markdown("#### 📅 Período de Análise")
+        
+        min_date = df_sdr['IRÁ SER FEITA EM'].min()
+        max_date = df_sdr['IRÁ SER FEITA EM'].max()
+        
+        data_range = st.date_input(
+            "Data das Reuniões",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
+
+    # Aplicar filtros (mantendo a mesma lógica do código original)
+    df_sdr_filtered = df_sdr.copy()
+    df_discadora_filtered = df_discadora.copy()
+
+    # Aplicar filtros...
+    if 'TODOS' not in sdr_options and sdr_options:
+        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['SDR'].isin(sdr_options)]
+        colunas_validas = [sdr for sdr in sdr_options if sdr in df_discadora.columns]
+        df_discadora_filtered = df_discadora_filtered[['DATA'] + colunas_validas]
+    else:
+        colunas_validas = [col for col in df_discadora_filtered.columns if col != 'DATA']
+
+    if 'TODOS' not in consultor_options and consultor_options:
+        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['CONSULTOR'].isin(consultor_options)]
+
+    if origem_option != 'Todos':
+        df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['ORIGEM'] == origem_option]
+
+    # Obter métricas
+    metricas = criar_metricas_avancadas(df_sdr_filtered, df_discadora_filtered, colunas_validas)
+
+    # KPIs Principais
+    st.markdown('<div class="section-header">🎯 Key Performance Indicators</div>', unsafe_allow_html=True)
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">👥 Pessoas Contatadas</div>
+            <div class="metric-value">{metricas['pessoas_faladas']:,}</div>
+            <div class="metric-delta positive">Volume Total</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">📅 Reuniões Marcadas</div>
+            <div class="metric-value">{metricas['reunioes_marcadas']:,}</div>
+            <div class="metric-delta positive">{metricas['taxa_conversao_marcacao']:.1f}% conversão</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">✅ Reuniões Realizadas</div>
+            <div class="metric-value">{metricas['reunioes_realizadas']:,}</div>
+            <div class="metric-delta positive">{metricas['taxa_conversao_realizacao']:.1f}% efetivação</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        delta_class = "negative" if metricas['taxa_no_show'] > 20 else "positive"
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">❌ No-Show</div>
+            <div class="metric-value">{metricas['no_show']:,}</div>
+            <div class="metric-delta {delta_class}">{metricas['taxa_no_show']:.1f}% taxa</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col5:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">💼 Contratos Fechados</div>
+            <div class="metric-value">{metricas['contratos_assinados']:,}</div>
+            <div class="metric-delta positive">{metricas['taxa_fechamento']:.1f}% conversão</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Insights e Análises
+    st.markdown('<div class="section-header">🧠 Insights & Análises</div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Funil de conversão melhorado
+        etapas = ["Pessoas Contatadas", "Reuniões Marcadas", "Reuniões Realizadas", "Contratos Fechados"]
+        quantidades = [metricas['pessoas_faladas'], metricas['reunioes_marcadas'], 
+                      metricas['reunioes_realizadas'], metricas['contratos_assinados']]
+        
+        fig_funil = go.Figure()
+        
+        # Cores gradientes
+        colors = ['#4a90e2', '#bfa94c', '#6bcf7f', '#ff6b6b']
+        
+        for i, (etapa, quantidade) in enumerate(zip(etapas, quantidades)):
+            fig_funil.add_trace(go.Funnel(
+                y=[etapa],
+                x=[quantidade],
+                textinfo="value+percent initial",
+                marker=dict(color=colors[i]),
+                name=etapa
+            ))
+        
+        fig_funil.update_layout(
+            title="🎯 Funil de Conversão de Vendas",
+            font=dict(color='white'),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            height=450,
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig_funil, use_container_width=True)
+    
+    with col2:
+        # Insights automáticos
+        st.markdown("""
+        <div class="insight-box">
+            <div class="insight-title">🎯 Insight de Performance</div>
+            <div class="insight-text">
+                Para cada reunião marcada, você precisa contactar 
+                <span class="highlight-text">{:.0f} pessoas</span> em média.
+            </div>
+        </div>
+        """.format(metricas['pessoas_faladas'] / metricas['reunioes_marcadas'] if metricas['reunioes_marcadas'] > 0 else 0), 
+        unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="insight-box">
+            <div class="insight-title">📊 Eficiência de Fechamento</div>
+            <div class="insight-text">
+                A cada <span class="highlight-text">{:.0f} reuniões realizadas</span>, 
+                você fecha aproximadamente 1 contrato.
+            </div>
+        </div>
+        """.format(metricas['reunioes_realizadas'] / metricas['contratos_assinados'] if metricas['contratos_assinados'] > 0 else 0), 
+        unsafe_allow_html=True)
+        
+        # Gauge de performance geral
+        performance_score = (metricas['taxa_conversao_marcacao'] + metricas['taxa_conversao_realizacao'] + metricas['taxa_fechamento']) / 3
+        
+        fig_gauge = go.Figure(go.Indicator(
+            mode = "gauge+number+delta",
+            value = performance_score,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Performance Score"},
+            delta = {'reference': 50},
+            gauge = {
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "#bfa94c"},
+                'steps': [
+                    {'range': [0, 25], 'color': "#ff6b6b"},
+                    {'range': [25, 50], 'color': "#ffd93d"},
+                    {'range': [50, 75], 'color': "#6bcf7f"},
+                    {'range': [75, 100], 'color': "#00d4aa"}
+                ],
+                'threshold': {
+                    'line': {'color': "white", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 90
+                }
+            }
+        ))
+        
+        fig_gauge.update_layout(
+            font=dict(color='white'),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            height=300
+        )
+        
+        st.plotly_chart(fig_gauge, use_container_width=True)
+
+    # Análise de Temperatura de Leads
+    st.markdown('<div class="section-header">🌡️ Análise de Temperatura de Leads</div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        # Distribuição de temperatura
+        temp_data = df_sdr_filtered['TEMPERATURA DO LEAD'].value_counts()
+        valid_temps = ['FRIO', 'MORNO', 'QUENTE']
+        temp_filtered = temp_data[temp_data.index.isin(valid_temps)]
+        
+        if len(temp_filtered) > 0:
+            fig_temp = go.Figure(data=[go.Pie(
+                labels=temp_filtered.index,
+                values=temp_filtered.values,
+                hole=0.6,
+                marker=dict(
+                    colors=['#4a90e2', '#ffd93d', '#ff6b6b'],
+                    line=dict(color='#ffffff', width=2)
+                )
+            )])
+            
+            fig_temp.update_layout(
+                title="Distribuição de Temperatura dos Leads",
+                font=dict(color='white'),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                height=350,
+                showlegend=True
+            )
+            
+            st.plotly_chart(fig_temp, use_container_width=True)
+    
+    with col2:
+        # Análise de conversão por temperatura
+        conversion_by_temp = []
+        for temp in valid_temps:
+            temp_leads = df_sdr_filtered[df_sdr_filtered['TEMPERATURA DO LEAD'] == temp]
+            if len(temp_leads) > 0:
+                conv_rate = temp_leads['LOG'].str.contains('c.assinado', na=False).sum() / len(temp_leads) * 100
+                conversion_by_temp.append({'Temperatura': temp, 'Conversão': conv_rate})
+        
+        if conversion_by_temp:
+            df_conv = pd.DataFrame(conversion_by_temp)
+            
+            fig_conv = px.bar(
+                df_conv, 
+                x='Temperatura', 
+                y='Conversão',
+                color='Conversão',
+                color_continuous_scale='RdYlGn',
+                title="Taxa de Conversão por Temperatura"
+            )
+            
+            fig_conv.update_layout(
+                font=dict(color='white'),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                height=350
+            )
+            
+            st.plotly_chart(fig_conv, use_container_width=True)
+
+    # Ranking e Performance Individual
+    st.markdown('<div class="section-header">🏆 Ranking de Performance</div>', unsafe_allow_html=True)
+    
+    # Criar ranking (mantendo a lógica original mas com apresentação melhorada)
+    if len(df_sdr_filtered) > 0:
+        performance_by_sdr = df_sdr_filtered.groupby('SDR').agg({
+            'LOG': lambda x: x.str.contains('r.marcada', na=False).sum(),
+            'PATRIMÔNIO': 'sum' if 'PATRIMÔNIO' in df_sdr_filtered.columns else lambda x: 0
+        }).reset_index()
+        
+        performance_by_sdr.columns = ['SDR', 'Reuniões Marcadas', 'Pipeline Value']
+        performance_by_sdr = performance_by_sdr.sort_values('Reuniões Marcadas', ascending=False)
+        
+        # Exibir ranking com estilo
+        st.dataframe(
+            performance_by_sdr.head(10),
+            use_container_width=True,
+            hide_index=True
+        )
+
+    # Agenda do Dia
+    st.markdown('<div class="section-header">📅 Agenda de Hoje</div>', unsafe_allow_html=True)
+    
+    hoje = datetime.today().date()
+    df_hoje = df_sdr_filtered[
+        (df_sdr_filtered['STATUS'] == 'MARCADA/PENDENTE') &
+        (df_sdr_filtered['IRÁ SER FEITA EM'].dt.date == hoje)
+    ]
+    
+    if len(df_hoje) > 0:
+        st.dataframe(
+            df_hoje[['SDR', 'CONSULTOR', 'ORIGEM', 'IRÁ SER FEITA EM', 'TEMPERATURA DO LEAD']],
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("📅 Nenhuma reunião agendada para hoje.")
+
+    # Dados detalhados em expander
+    with st.expander("📊 Dados Detalhados"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("SDR Data")
+            st.dataframe(df_sdr_filtered.head(100), use_container_width=True)
+        
+        with col2:
+            st.subheader("Discadora Data")
+            st.dataframe(df_discadora_filtered.head(100), use_container_width=True)
+
+    # Footer
+    st.markdown("""
+    <div style="text-align: center; padding: 40px 0; border-top: 1px solid #404040; margin-top: 40px;">
+        <p style="color: #a0a0a0; font-size: 14px;">
+            📊 Dashboard desenvolvido com Streamlit & Plotly | Última atualização: {current_time}
+        </p>
+    </div>
+    """.format(current_time=datetime.now().strftime("%d/%m/%Y %H:%M")), unsafe_allow_html=True)
