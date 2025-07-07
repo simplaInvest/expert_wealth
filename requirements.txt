@@ -8,5 +8,5 @@ oauth2client
 datetime
 timedelta
 streamlit_extras
-sklearn
+scikit-learn
 numpy
