@@ -13,14 +13,15 @@ import matplotlib.pyplot as plt
 import time  # Para controle de atualização automática
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
+import time
 import random
 import re
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from streamlit_extras.metric_cards import style_metric_cards
 
-def carregar_planilha(df_name, sheet_url: str, nome_aba: str = "Página1"):
-    if df_name not in st.session_state:
+def carregar_planilha(df_name, sheet_url: str, nome_aba: str = "Página1", forcar=False):
+    if df_name not in st.session_state or forcar:
         # Autenticação
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         credentials_dict = st.secrets["gcp_service_account"]
@@ -78,46 +79,46 @@ def carregar_dataframes():
     planilhas_com_erro = []
 
     try:
-        df_ligacoes = carregar_planilha("df_ligacoes", "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing", "LIGACOES")
+        df_ligacoes = carregar_planilha("df_ligacoes", "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing", "LIGACOES", forcar=True)
         df_ligacoes = preparar_dataframe(df_ligacoes)
     except Exception as e:
         planilhas_com_erro.append(f"Histórico de chamadas: {e}")
 
     try:
-        df_metas_individuais = carregar_planilha('df_metas_individuais','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_individuais')
+        df_metas_individuais = carregar_planilha('df_metas_individuais','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_individuais', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Metas_individuais: {e}")
 
     try:
-        df_rmarcadas = carregar_planilha('df_rmarcadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.MARCADAS')
+        df_rmarcadas = carregar_planilha('df_rmarcadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.MARCADAS', forcar=True)
         df_rmarcadas = adicionar_time('df_rmarcadas',df_rmarcadas, df_metas_individuais)
     except Exception as e:
         planilhas_com_erro.append(f"R.MARCADAS: {e}")
     
     try:
-        df_rrealizadas = carregar_planilha('df_rrealizadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.REALIZADAS')
+        df_rrealizadas = carregar_planilha('df_rrealizadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.REALIZADAS', forcar=True)
         df_rrealizadas = adicionar_time('df_rrealizadas',df_rrealizadas, df_metas_individuais)
     except Exception as e:
         planilhas_com_erro.append(f"R.REALIZADAS: {e}")
     
     try:
-        df_cassinados = carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS')
+        df_cassinados = carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS', forcar=True)
         df_cassinados = adicionar_time('df_cassinados',df_cassinados, df_metas_individuais)
     except Exception as e:
         planilhas_com_erro.append(f"C.ASSINADOS: {e}")
 
     try:
-        df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH')
+        df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Captação: {e}")
     
     try:
-        df_sdr = carregar_planilha('df_sdr', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS REUNIOES')
+        df_sdr = carregar_planilha('df_sdr', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS REUNIOES', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Dados_SDR: {e}")
 
     try:
-        df_discadora = carregar_planilha('df_discadora', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS DISCADORA')
+        df_discadora = carregar_planilha('df_discadora', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS DISCADORA', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Dados_Discadora: {e}")
     
@@ -127,6 +128,11 @@ def carregar_dataframes():
             st.error(erro)
     else:
         st.success("Planilhas carregadas com sucesso!")
+
+def precisa_atualizar():
+    agora = time.time()
+    ultima = st.session_state.get("ultima_atualizacao", 0)
+    return (agora - ultima) > 900  # 15 minutos
 
 def projetar_dados(
     df_ligacoes_filtered,
@@ -756,13 +762,6 @@ def pag_sdr(df_sdr, df_discadora):
         df_discadora['DATA'] = pd.to_datetime(df_discadora['DATA'], format='%d/%m/%Y', errors='coerce')
         
         return df_sdr, df_discadora
-
-    # Título do dashboard
-    st.title("📊 Dashboard - Métricas SDR")
-    st.info("""
-    💡 Em desenvolvimento 🥶
-    """)
-    st.markdown("---")
 
     # Carregar dados
     df_sdr, df_discadora = preparar_dados()

@@ -19,7 +19,7 @@ import random
 from datetime import datetime, timedelta
 import re
 
-from funcs import projetar_dados, carregar_dataframes
+from funcs import projetar_dados, carregar_dataframes, precisa_atualizar
 from sidebar import setup_sidebar
 
 
@@ -28,31 +28,24 @@ from sidebar import setup_sidebar
 ##############################################################################
 
 st.set_page_config(page_title="Metrics", page_icon="🔧", layout = 'wide')
-
-# Esconde a barra superior do Streamlit
-#st.markdown("""
-#    <style>
-#        #MainMenu {visibility: hidden;}
-#        footer {visibility: hidden;}
-#        header {visibility: hidden;}
-#    </style>
-#""", unsafe_allow_html=True)
+st.logo(image='z_logo_light.png', size = 'large')
 
 # Chama a sidebar
 setup_sidebar()
 
-if st.button("Limpar Tudo"):
-    # Limpa o cache
-    st.cache_data.clear()
-    st.cache_resource.clear()
+if precisa_atualizar():
+    carregar_dataframes()
+    st.session_state["ultima_atualizacao"] = time.time()
 
-    # Limpa o session_state
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
+if st.button(label = '🔄 Recarregar Planilhas'):
+    carregar_dataframes()  # sua função para carregar dados das planilhas
+    st.session_state["ultima_atualizacao"] = time.time()
 
-    st.success("Cache e estado da sessão limpos! Recarregue os dados.")
-
-    st.switch_page("main.py")
+if "ultima_atualizacao" in st.session_state:
+    st.sidebar.markdown(
+        f"🕒 Dados atualizados pela última vez em: "
+        f"{time.strftime('%H:%M:%S', time.localtime(st.session_state['ultima_atualizacao']))}"
+    )
 
 #######################################################################################
 ##                           Carregar dfs do session state                           ##
