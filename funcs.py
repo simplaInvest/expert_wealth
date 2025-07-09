@@ -774,7 +774,7 @@ def pag_sdr(df_sdr, df_discadora):
     st.subheader("🔍 Filtros")
 
     # Criar colunas para os filtros
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         sdr_options = st.multiselect(
@@ -798,26 +798,14 @@ def pag_sdr(df_sdr, df_discadora):
         )
 
     with col4:
-        # Data mínima e máxima para o filtro
-        min_date = df_sdr['IRÁ SER FEITA EM'].min()
-        max_date = df_sdr['IRÁ SER FEITA EM'].max()
-        
-        data_ira_ser_feita = st.date_input(
-            "IRÁ SER FEITA EM",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date
-        )
-
-    with col5:
-        min_date_marcada = df_sdr['MARCADA EM'].min()
-        max_date_marcada = df_sdr['MARCADA EM'].max()
+        min_date_marcada = date.today() - timedelta(days=1)
+        max_date_marcada = date.today()
         
         data_marcada = st.date_input(
             "MARCADA EM",
             value=(min_date_marcada, max_date_marcada),
-            min_value=min_date_marcada,
-            max_value=max_date_marcada
+            min_value= df_sdr['MARCADA EM'].min(),
+            max_value=df_sdr['MARCADA EM'].max() + timedelta(days=1)
         )
 
     # Aplicar filtros
@@ -844,18 +832,6 @@ def pag_sdr(df_sdr, df_discadora):
     if origem_option != 'Todos':
         df_sdr_filtered = df_sdr_filtered[df_sdr_filtered['ORIGEM'] == origem_option]
 
-    # Filtro de datas
-    if len(data_ira_ser_feita) == 2:
-        start_date, end_date = data_ira_ser_feita
-        df_sdr_filtered = df_sdr_filtered[
-            (df_sdr_filtered['IRÁ SER FEITA EM'] >= pd.Timestamp(start_date)) &
-            (df_sdr_filtered['IRÁ SER FEITA EM'] <= pd.Timestamp(end_date))
-        ]
-        df_discadora_filtered = df_discadora_filtered[
-            (df_discadora_filtered['DATA'] >= pd.Timestamp(start_date)) &
-            (df_discadora_filtered['DATA'] <= pd.Timestamp(end_date))
-        ]
-
     if len(data_marcada) == 2:
         start_date_marcada, end_date_marcada = data_marcada
         df_sdr_filtered = df_sdr_filtered[
@@ -874,7 +850,7 @@ def pag_sdr(df_sdr, df_discadora):
     ##############################################################
 
     # MÉTRICAS E GRÁFICOS
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     with col1:
         pessoas_faladas = df_discadora_filtered[colunas_validas].sum().sum()
@@ -890,8 +866,16 @@ def pag_sdr(df_sdr, df_discadora):
             label="Reuniões Marcadas",
             value=reunioes_marcadas
         )
-    
+
     with col3:
+        # Contar leads que possuem exatamente 'r.marcada' na coluna LOG
+        a_fazer = (df_sdr_filtered['LOG'] == 'r.marcada').sum()
+        st.metric(
+            label = "Reuniões a Fazer",
+            value = a_fazer
+        )
+
+    with col4:
         # Contar leads que possuem 'r.realizada' na coluna LOG
         reunioes_realizadas = df_sdr_filtered['LOG'].str.contains('r.realizada', na=False).sum()
         st.metric(
@@ -899,7 +883,7 @@ def pag_sdr(df_sdr, df_discadora):
             value = reunioes_realizadas
         )
 
-    with col4:
+    with col5:
         # Contar leads que possuem 'no-show' na coluna LOG
         no_show = df_sdr_filtered['LOG'].str.contains('no-show', na=False).sum()
         st.metric(
@@ -907,7 +891,7 @@ def pag_sdr(df_sdr, df_discadora):
             value = no_show
         )
  
-    with col5:
+    with col6:
         # Contar leads que possuem 'c.assinado' na coluna LOG
         contratos_assinados = df_sdr_filtered['LOG'].str.contains('c.assinado', na=False).sum()
         st.metric(
@@ -1028,21 +1012,31 @@ def pag_sdr(df_sdr, df_discadora):
 
         render_card(
             texto_descricao="Pessoas necessárias para marcar 1 reunião",
-            valor_formatado=f"{int(pessoas_faladas / reunioes_marcadas)} pessoas",
+            valor_formatado=(
+                f"{int(pessoas_faladas / reunioes_marcadas)} pessoas"
+                if reunioes_marcadas != 0 else "N/A"
+            ),
             emoji="🗣️"
         )
 
         render_card(
             texto_descricao="Reuniões marcadas para realizar 1",
-            valor_formatado=f"{int(reunioes_marcadas / reunioes_realizadas)} reuniões",
+            valor_formatado=(
+                f"{int(reunioes_marcadas / reunioes_realizadas)} reuniões"
+                if reunioes_realizadas != 0 else "N/A"
+            ),
             emoji="📅"
         )
 
         render_card(
             texto_descricao="Reuniões realizadas para fechar 1 contrato",
-            valor_formatado=f"{int(reunioes_realizadas / contratos_assinados)} reuniões",
-            emoji="📝"
+            valor_formatado=(
+                f"{int(reunioes_realizadas / contratos_assinados)} reuniões"
+                if contratos_assinados != 0 else "N/A"
+            ),
+            emoji="🤝"
         )
+
 
     ##############################################################
     ##########                  4ª Linha               ###########
@@ -1095,6 +1089,77 @@ def pag_sdr(df_sdr, df_discadora):
             st.plotly_chart(fig_pie, use_container_width=True)
         else:
             st.info("Não há dados de temperatura válidos para exibir")
+    
+        # Geração apenas dos dias úteis
+        with st.expander(label= "Reuniões Marcadas por dia"):
+            dias = pd.date_range(start= start_date_marcada, end=end_date_marcada, freq='B')
+            meta_individual = 10
+            n_sdrs = df_sdr_filtered['SDR'].nunique()
+            meta_diaria_ajustada = meta_individual * n_sdrs
+
+            # Conta quantas reuniões marcadas por dia útil
+            df_dia = (
+                df_sdr_filtered.groupby("MARCADA EM")["SDR"]
+                .count()
+                .reindex(dias.date, fill_value=0)
+                .reset_index()
+                .rename(columns={"index": "MARCADA EM", "SDR": "REALIZADO"})
+            )
+
+            # Converte datas para string (categorias no eixo X)
+            df_dia["LABEL"] = df_dia["MARCADA EM"].apply(lambda d: d.strftime("%d/%m"))
+
+            # Criação do gráfico
+            fig = go.Figure()
+
+            # Barras de reuniões marcadas
+            fig.add_trace(go.Bar(
+                x=df_dia["LABEL"],
+                y=df_dia["REALIZADO"],
+                name="Reuniões Marcadas",
+                marker_color="#1c64f2",
+                text=df_dia["REALIZADO"],
+                textposition="outside",
+            ))
+
+            # Linha da meta diária ajustada
+            fig.add_trace(go.Scatter(
+                x=df_dia["LABEL"],
+                y=[meta_diaria_ajustada] * len(df_dia),
+                mode="lines",
+                name="Meta Diária",
+                line=dict(color="green", dash="dash")
+            ))
+
+            # Layout
+            fig.update_layout(
+                title="Reuniões Marcadas por Dia vs Meta",
+                xaxis_title="Data (dias úteis)",
+                yaxis=dict(
+                    title="Reuniões marcadas",
+                    range=[0, max(df_dia["REALIZADO"].max(), meta_diaria_ajustada) * 1.15]
+                ),
+                barmode='group',
+                hovermode="x unified",
+                showlegend=False,
+                margin=dict(t=20, b=0, l=0, r=0),
+                height=220
+            )
+
+            # Anotação da meta
+            fig.add_annotation(
+                xref="paper", yref="y",
+                x=0.99, y=meta_diaria_ajustada,
+                text=f"Meta diária: {meta_diaria_ajustada}",
+                showarrow=False,
+                font=dict(size=14, color="green"),
+                bgcolor="white",
+                bordercolor="green",
+                borderwidth=1
+            )
+
+            # Exibe no Streamlit
+            st.plotly_chart(fig, use_container_width=True)
 
     ##############################################################
     ##########                  5ª Linha               ###########
@@ -1344,6 +1409,7 @@ def pag_sdr(df_sdr, df_discadora):
 
     # Instruções para usar com dados reais
     st.markdown("---")
+
    
 # ===============================
 
