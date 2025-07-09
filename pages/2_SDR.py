@@ -30,6 +30,9 @@ from sidebar import setup_sidebar
 # Configuração da página
 st.set_page_config(page_title="Dashboard Métricas SDR", layout="wide")
 st.logo(image='z_logo_light.png', size = 'large')
+st.write("")
+st.write("")
+st.write("")
 
 # Título do dashboard
 #st.title("📊 Dashboard - Métricas SDR")
