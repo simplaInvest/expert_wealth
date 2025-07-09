@@ -19,7 +19,7 @@ import random
 from datetime import datetime, timedelta
 import re
 
-from funcs import carregar_dataframes, pag_sdr, precisa_atualizar
+from funcs import carregar_dataframes, pag_sdr, precisa_atualizar, pag_sdr_teste
 from sidebar import setup_sidebar
 
 
@@ -32,11 +32,11 @@ st.set_page_config(page_title="Dashboard Métricas SDR", layout="wide")
 st.logo(image='z_logo_light.png', size = 'large')
 
 # Título do dashboard
-st.title("📊 Dashboard - Métricas SDR")
-st.info("""
-💡 Em desenvolvimento 🥶
-""")
-st.markdown("---")
+#st.title("📊 Dashboard - Métricas SDR")
+#st.info("""
+#💡 Em desenvolvimento 🥶
+#""")
+#st.markdown("---")
 
 # Chama a sidebar
 setup_sidebar()
@@ -68,4 +68,6 @@ df_discadora = st.session_state.get("df_discadora")
 ##                                         Início do Layout                                            ##
 #########################################################################################################
 
-pag_sdr(df_sdr=df_sdr, df_discadora=df_discadora)
+# pag_sdr(df_sdr=df_sdr, df_discadora=df_discadora)
+
+pag_sdr_teste(df_sdr=df_sdr, df_discadora=df_discadora)
