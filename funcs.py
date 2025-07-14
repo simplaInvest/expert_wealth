@@ -1752,16 +1752,19 @@ def pag_sdr_teste(df_sdr, df_discadora):
             help="Filtrar por origem do lead"
         )
 
-        min_date_marcada = date.today() - timedelta(days=5)
-        max_date_marcada = date.today()
+        # Converte valores do DataFrame para datetime.date
+        min_val = df_sdr['MARCADA EM'].min().date()
+        max_val = (df_sdr['MARCADA EM'].max() + timedelta(days=1)).date()
 
-        min_val = df_sdr['MARCADA EM'].min()
-        max_val = df_sdr['MARCADA EM'].max() + timedelta(days=1)
+        # Também converta as variáveis que serão usadas como padrão
+        min_date_marcada = min_date_marcada.date()
+        max_date_marcada = max_date_marcada.date()
 
-        # Corrige o valor padrão para estar dentro do intervalo
+        # Corrige os valores padrão para estarem dentro dos limites
         min_date_marcada = max(min_date_marcada, min_val)
         max_date_marcada = min(max_date_marcada, max_val)
 
+        # Exibe o seletor de datas
         data_marcada = st.date_input(
             "Período",
             value=(min_date_marcada, max_date_marcada),
