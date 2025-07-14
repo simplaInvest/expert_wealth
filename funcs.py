@@ -1752,6 +1752,9 @@ def pag_sdr_teste(df_sdr, df_discadora):
             help="Filtrar por origem do lead"
         )
 
+        min_date_marcada = date.today() - timedelta(days=5)
+        max_date_marcada = date.today()
+
         # Converte valores do DataFrame para datetime.date
         min_val = df_sdr['MARCADA EM'].min().date()
         max_val = (df_sdr['MARCADA EM'].max() + timedelta(days=1)).date()
@@ -1772,6 +1775,7 @@ def pag_sdr_teste(df_sdr, df_discadora):
             max_value=max_val,
             help="Selecione o período para análise"
         )
+
 
         st.markdown("---")
         st.markdown("**📈 Métricas em tempo real**")
