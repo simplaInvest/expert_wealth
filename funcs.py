@@ -1759,10 +1759,6 @@ def pag_sdr_teste(df_sdr, df_discadora):
         min_val = df_sdr['MARCADA EM'].min().date()
         max_val = (df_sdr['MARCADA EM'].max() + timedelta(days=1)).date()
 
-        # Também converta as variáveis que serão usadas como padrão
-        min_date_marcada = min_date_marcada.date()
-        max_date_marcada = max_date_marcada.date()
-
         # Corrige os valores padrão para estarem dentro dos limites
         min_date_marcada = max(min_date_marcada, min_val)
         max_date_marcada = min(max_date_marcada, max_val)
@@ -1775,7 +1771,6 @@ def pag_sdr_teste(df_sdr, df_discadora):
             max_value=max_val,
             help="Selecione o período para análise"
         )
-
 
         st.markdown("---")
         st.markdown("**📈 Métricas em tempo real**")
