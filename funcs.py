@@ -1752,14 +1752,18 @@ def pag_sdr_teste(df_sdr, df_discadora):
             help="Filtrar por origem do lead"
         )
 
-        min_date_marcada = date.today() - timedelta(days=30)
-        max_date_marcada = date.today()
-        
+        min_val = df_sdr['MARCADA EM'].min()
+        max_val = df_sdr['MARCADA EM'].max() + timedelta(days=1)
+
+        # Corrige o valor padrão para estar dentro do intervalo
+        min_date_marcada = max(min_date_marcada, min_val)
+        max_date_marcada = min(max_date_marcada, max_val)
+
         data_marcada = st.date_input(
             "Período",
             value=(min_date_marcada, max_date_marcada),
-            min_value=df_sdr['MARCADA EM'].min(),
-            max_value=df_sdr['MARCADA EM'].max() + timedelta(days=1),
+            min_value=min_val,
+            max_value=max_val,
             help="Selecione o período para análise"
         )
 
@@ -1883,8 +1887,6 @@ def pag_sdr_teste(df_sdr, df_discadora):
     
     with col1:
         st.markdown("**Visualização do Funil**")
-        if st.button("🔄 Atualizar Funil"):
-            st.success("Funil atualizado com sucesso!")
         
         # Placeholder para imagem do funil
         try:

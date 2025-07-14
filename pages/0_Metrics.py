@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 import re
 
 from funcs import projetar_dados, carregar_dataframes, precisa_atualizar
+from teste1 import projetar_dados_teste
 from sidebar import setup_sidebar
 
 
@@ -270,4 +271,3 @@ projetar_dados(
     data_inicio,
     data_fim
 )
-
