@@ -1752,6 +1752,9 @@ def pag_sdr_teste(df_sdr, df_discadora):
             help="Filtrar por origem do lead"
         )
 
+        min_date_marcada = date.today() - timedelta(days=5)
+        max_date_marcada = date.today()
+
         min_val = df_sdr['MARCADA EM'].min()
         max_val = df_sdr['MARCADA EM'].max() + timedelta(days=1)
 
