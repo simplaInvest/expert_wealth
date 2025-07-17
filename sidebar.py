@@ -16,6 +16,7 @@ def setup_sidebar():
 
         # Se for admin, exibe todas as páginas
         if user_type == "admin":
+            st.page_link("pages/sheets.py", label="📝 Planilhas")
             st.page_link("pages/0_Metrics.py", label='🔻 Métricas funil')
             st.page_link("pages/2_SDR.py", label = "📞 SDRs")
             st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls - Comercial GR")

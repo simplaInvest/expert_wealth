@@ -44,13 +44,14 @@ st.write("")
 # Chama a sidebar
 setup_sidebar()
 
-if precisa_atualizar():
-    carregar_dataframes()
-    st.session_state["ultima_atualizacao"] = time.time()
+with st.sidebar:
+    if precisa_atualizar():
+        carregar_dataframes()
+        st.session_state["ultima_atualizacao"] = time.time()
 
-if st.button(label = '🔄 Recarregar Planilhas'):
-    carregar_dataframes()  # sua função para carregar dados das planilhas
-    st.session_state["ultima_atualizacao"] = time.time()
+    if st.button(label = '🔄 Recarregar Planilhas'):
+        carregar_dataframes()  # sua função para carregar dados das planilhas
+        st.session_state["ultima_atualizacao"] = time.time()
 
 if "ultima_atualizacao" in st.session_state:
     st.sidebar.markdown(

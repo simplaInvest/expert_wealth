@@ -41,6 +41,19 @@ def carregar_planilha(df_name, sheet_url: str, nome_aba: str = "Página1", forca
 
     return st.session_state[df_name]
 
+def tentar_carregar_planilha(nome, url, aba, forcar=True, max_tentativas=3, delay=3):
+    for tentativa in range(1, max_tentativas + 1):
+        try:
+            df = carregar_planilha(nome, url, aba, forcar=forcar)
+            return df
+        except Exception as e:
+            if "429" in str(e):  # erro de limite da API
+                st.warning(f"Limite de requisições atingido ao tentar carregar '{nome}'. Tentativa {tentativa}/{max_tentativas}...")
+                time.sleep(delay * tentativa)  # backoff progressivo
+            else:
+                raise e
+    raise Exception(f"{nome}: Erro 429 persistente após {max_tentativas} tentativas.")
+
 def preparar_dataframe(df):
     # Convertendo colunas de data e hora com vírgula
     df["Início da ligação"] = pd.to_datetime(df["Início da ligação"], format="%d/%m/%Y, %H:%M:%S", errors="coerce")
@@ -79,46 +92,46 @@ def carregar_dataframes():
     planilhas_com_erro = []
 
     try:
-        df_ligacoes = carregar_planilha("df_ligacoes", "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing", "LIGACOES", forcar=True)
+        df_ligacoes = tentar_carregar_planilha("df_ligacoes", "https://docs.google.com/spreadsheets/d/17b9kaTH9TjSg2b32m0iHqxKF4XGWC9g6Cl2xl4VdivY/edit?usp=sharing", "LIGACOES", forcar=True)
         df_ligacoes = preparar_dataframe(df_ligacoes)
     except Exception as e:
         planilhas_com_erro.append(f"Histórico de chamadas: {e}")
 
     try:
-        df_metas_individuais = carregar_planilha('df_metas_individuais','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_individuais', forcar=True)
+        df_metas_individuais = tentar_carregar_planilha('df_metas_individuais','https://docs.google.com/spreadsheets/d/1244uV01S0_-64JI83kC7qv7ndzbL8CzZ6MvEu8c68nM/edit?usp=sharing', 'Metas_individuais', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Metas_individuais: {e}")
 
     try:
-        df_rmarcadas = carregar_planilha('df_rmarcadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.MARCADAS', forcar=True)
+        df_rmarcadas = tentar_carregar_planilha('df_rmarcadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.MARCADAS', forcar=True)
         df_rmarcadas = adicionar_time('df_rmarcadas',df_rmarcadas, df_metas_individuais)
     except Exception as e:
         planilhas_com_erro.append(f"R.MARCADAS: {e}")
     
     try:
-        df_rrealizadas = carregar_planilha('df_rrealizadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.REALIZADAS', forcar=True)
+        df_rrealizadas = tentar_carregar_planilha('df_rrealizadas','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'R.REALIZADAS', forcar=True)
         df_rrealizadas = adicionar_time('df_rrealizadas',df_rrealizadas, df_metas_individuais)
     except Exception as e:
         planilhas_com_erro.append(f"R.REALIZADAS: {e}")
     
     try:
-        df_cassinados = carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS', forcar=True)
+        df_cassinados = tentar_carregar_planilha('df_cassinados','https://docs.google.com/spreadsheets/d/1h7sQ7Q92ve5vA-MYxZF5srGYnlME8rfgkiKNNJQBbQk/edit?usp=sharing', 'C.ASSINADOS', forcar=True)
         df_cassinados = adicionar_time('df_cassinados',df_cassinados, df_metas_individuais)
     except Exception as e:
         planilhas_com_erro.append(f"C.ASSINADOS: {e}")
 
     try:
-        df_captação = carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH', forcar=True)
+        df_captação = tentar_carregar_planilha('df_captação','https://docs.google.com/spreadsheets/d/1KmMdB6he5iqORaGa1QuBwaihSvR44LpUHWGGw_mfx_U/edit?usp=sharing', 'RANKING - DASH', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Captação: {e}")
     
     try:
-        df_sdr = carregar_planilha('df_sdr', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS REUNIOES', forcar=True)
+        df_sdr = tentar_carregar_planilha('df_sdr', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS REUNIOES', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Dados_SDR: {e}")
 
     try:
-        df_discadora = carregar_planilha('df_discadora', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS DISCADORA', forcar=True)
+        df_discadora = tentar_carregar_planilha('df_discadora', 'https://docs.google.com/spreadsheets/d/1Ex8pPnRyvN_A_5BBA7HgR26un1jyYs7DNYDt7NPqGus/edit?usp=sharing', 'DADOS DISCADORA', forcar=True)
     except Exception as e:
         planilhas_com_erro.append(f"Dados_Discadora: {e}")
     
@@ -462,7 +475,6 @@ def projetar_dados(
                 )
             ]
         )
-
 
         fig.update_layout(
             margin=dict(t=20, b=0, l=0, r=0),
@@ -1721,14 +1733,11 @@ def pag_sdr_teste(df_sdr, df_discadora):
     # ================================
     # SIDEBAR COM FILTROS ELEGANTES
     # ================================
-    with st.sidebar:
-        st.markdown("""
-        <div class="sidebar-header">
-            <h2>🔍 Filtros de Análise</h2>
-        </div>
-        """, unsafe_allow_html=True)
 
-        # Filtros organizados
+    col1, col2, col3 = st.columns(3) 
+
+    with col1:
+    # Filtros organizados
         st.markdown("**👥 Equipe**")
         sdr_options = st.multiselect(
             "SDR",
@@ -1744,6 +1753,7 @@ def pag_sdr_teste(df_sdr, df_discadora):
             help="Filtre por consultor responsável"
         )
 
+    with col2:
         st.markdown("**🎯 Origem & Data**")
         origem_option = st.selectbox(
             "Origem",
@@ -1763,6 +1773,7 @@ def pag_sdr_teste(df_sdr, df_discadora):
         min_date_marcada = max(min_date_marcada, min_val)
         max_date_marcada = min(max_date_marcada, max_val)
 
+    with col3:
         # Exibe o seletor de datas
         data_marcada = st.date_input(
             "Período",
@@ -1772,6 +1783,7 @@ def pag_sdr_teste(df_sdr, df_discadora):
             help="Selecione o período para análise"
         )
 
+    with st.sidebar:
         st.markdown("---")
         st.markdown("**📈 Métricas em tempo real**")
         

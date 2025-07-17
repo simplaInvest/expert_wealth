@@ -308,8 +308,13 @@ def projetar_dados_teste(
             color_discrete_sequence=["#6366f1"]  # Cor do tema
         )
 
+        for trace in fig.data:
+            trace.text = None
+            trace.texttemplate = ""
+            trace.textinfo = "none"
+
         # Remove texto automático
-        fig.update_traces(text=None)
+        fig.update_traces(text=None, texttemplate="")
 
         # Anotações: Etapas com valores
         for i, (etapa, y) in enumerate(zip(etapas, posicoes_y_etapas)):
