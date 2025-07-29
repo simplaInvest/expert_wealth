@@ -563,7 +563,7 @@ def projetar_dados_teste(
             xaxis=dict(
                 title=dict(text="Data", font=dict(color='#f8fafc')),
                 tickfont=dict(color='#94a3b8'),
-                range=[data_inicio, data_fim]
+                range=[dias_uteis[0], dias_uteis[-1]]
             ),
             yaxis=dict(
                 title=dict(text="Quantidade acumulada", font=dict(color='#f8fafc')),
@@ -586,7 +586,7 @@ def projetar_dados_teste(
                     bordercolor="#6366f1",
                     borderwidth=1,
                     font=dict(
-                        color="#f8fafc",
+                        color="#6366f1",
                         size=10,
                         family="Inter"
                     ),
