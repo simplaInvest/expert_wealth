@@ -507,9 +507,6 @@ with col_filtros[0]:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Processamento dos dados (mantido original)
-dias_selecionados = (data_fim - data_inicio).days + 1
-
 # Converte as colunas "DATA" para datetime.date corretamente
 for df in [df_rmarcadas_filtrado, df_rrealizadas_filtrado, df_cassinados_filtrado]:
     if df["DATA"].dtype == object:
