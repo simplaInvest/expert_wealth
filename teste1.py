@@ -10,6 +10,7 @@ def projetar_dados_teste(
     metas_acumuladas,
     multiplicador_mes,
     n_consultores,
+    dias_selecionados,
     data_inicio,
     data_fim
 ):
@@ -136,7 +137,7 @@ def projetar_dados_teste(
         st.markdown("**🔊 Ligações & Realizações**")
         
         for nome, valor, meta in [
-            ("Ligações", df_ligacoes_filtered.shape[0], multiplicador_mes * 5 * 100 * n_consultores),
+            ("Ligações", df_ligacoes_filtered.shape[0], dias_selecionados * n_consultores * 60),
             ("Reuniões Realizadas", valores["Reuniões Realizadas"], metas_acumuladas["Reuniões Realizadas"])
         ]:
             # Calcular percentual para cores dinâmicas
@@ -467,7 +468,7 @@ def projetar_dados_teste(
         st.plotly_chart(fig, use_container_width=True)
 
         # GRÁFICO 2: Performance acumulada
-        dias = pd.date_range(start=data_inicio, end=data_fim)
+        dias_uteis = pd.bdate_range(start=data_inicio, end=data_fim)
 
         dados_real = {
             "Reuniões Marcadas": df_rmarcadas_filtrado,
@@ -492,12 +493,13 @@ def projetar_dados_teste(
             b = int(hex_color[4:6], 16)
             return f"rgba({r}, {g}, {b}, {alpha})"
 
+
         for i, (nome_metrica, df) in enumerate(dados_real.items()):
-            # Conta diários
+            # Conta diários (apenas dias úteis)
             df_dia = (
                 df.groupby("DATA")["CONSULTOR"]
                 .count()
-                .reindex(dias.date, fill_value=0)
+                .reindex(dias_uteis.date, fill_value=0)
                 .rename("REALIZADO")
                 .reset_index()
                 .rename(columns={"index": "DATA"})
@@ -520,8 +522,12 @@ def projetar_dados_teste(
             ))
 
             # Linha de Meta Acumulada
-            meta_mensal = metas_acumuladas[nome_metrica]
-            meta_diaria = meta_mensal / 30
+            meta_diaria = {
+                "Reuniões Marcadas" : 2 * n_consultores,
+                "Reuniões Realizadas" : 1.4 * n_consultores,
+                "Contratos Assinados" : 0.7 * n_consultores
+            }
+            meta_diaria = meta_diaria[nome_metrica]
             df_dia["META"] = [meta_diaria * (j + 1) for j in range(len(df_dia))]
 
             fig.add_trace(go.Scatter(
@@ -591,6 +597,7 @@ def projetar_dados_teste(
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
 
     # Divisor elegante
     st.markdown('<hr class="section-divider-proj">', unsafe_allow_html=True)

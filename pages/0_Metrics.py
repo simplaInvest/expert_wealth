@@ -3,6 +3,7 @@
 ##############################################################################
 
 import streamlit as st  # type: ignore
+import numpy as np
 import json 
 import requests  # type: ignore
 import os
@@ -487,7 +488,7 @@ with col_filtros[0]:
         periodo_display = f"📊 Personalizado: {data_inicio.strftime('%d/%m')} - {data_fim.strftime('%d/%m/%Y')}"
 
     # Cálculos que devem ser mantidos
-    dias_selecionados = (data_fim - data_inicio).days + 1
+    dias_selecionados = np.busday_count(data_inicio, data_fim + timedelta(days=1))
     mes_inicio = int(data_inicio.strftime("%m"))
     mes_fim = int(data_fim.strftime("%m"))
 
@@ -575,11 +576,20 @@ with col_filtros[1]:
         label_visibility="collapsed"
     )
 
+    if segmentacao == "Geral":
+        geral = ["TEAM BRAVO", "TEAM POWER"]
+
+        df_rmarcadas_filtrado = df_rmarcadas_filtrado[df_rmarcadas_filtrado["TIME"].isin(geral)]
+        df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["TIME"].isin(geral)]
+        df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["TIME"].isin(geral)]
+        df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Time"].isin(geral)]
+        df_metas_individuais = df_metas_individuais[df_metas_individuais["TIME"].isin(geral)]
+
     if segmentacao == "Time":
         st.markdown('<div class="filter-title">🏆 Selecione o Time:</div>', unsafe_allow_html=True)
         time_selecionado = st.selectbox(
             "time_selector",
-            ["TEAM BRAVO", "TEAM FARMER", "TEAM POWER", "SDR"],
+            ["TEAM BRAVO", "TEAM POWER"],
             label_visibility="collapsed"
         )
         
@@ -587,6 +597,7 @@ with col_filtros[1]:
         df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["TIME"] == time_selecionado]
         df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["TIME"] == time_selecionado]
         df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Time"] == time_selecionado]
+        df_metas_individuais = df_metas_individuais[df_metas_individuais["TIME"] == time_selecionado]
         
         st.markdown(f"""
         <div class="info-box">
@@ -596,7 +607,7 @@ with col_filtros[1]:
 
     elif segmentacao == "Consultor":
         st.markdown('<div class="filter-title">👤 Selecione o Consultor:</div>', unsafe_allow_html=True)
-        consultores = df_metas_individuais["CONSULTOR"].dropna().unique()
+        consultores = df_metas_individuais[df_metas_individuais["TIME"].isin(["TEAM BRAVO", "TEAM POWER"])]["CONSULTOR"].dropna().unique()
         consultor_selecionado = st.selectbox(
             "consultor_selector",
             sorted(consultores),
@@ -607,6 +618,7 @@ with col_filtros[1]:
         df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["CONSULTOR"] == consultor_selecionado]
         df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["CONSULTOR"] == consultor_selecionado]
         df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Consultor"] == consultor_selecionado]
+        df_metas_individuais = df_metas_individuais[df_metas_individuais["CONSULTOR"] == consultor_selecionado]
         
         st.markdown(f"""
         <div class="info-box">
@@ -617,10 +629,14 @@ with col_filtros[1]:
     # Determina os consultores filtrados
     if segmentacao == "Geral":
         consultores_filtrados = df_metas_individuais["CONSULTOR"].dropna().unique()
-        n_consultores = len(consultores_filtrados) - 3  # exclui os líderes da meta
-    elif segmentacao == "Time":
-        consultores_filtrados = df_metas_individuais[df_metas_individuais["TIME"] == time_selecionado]["CONSULTOR"].dropna().unique()
         n_consultores = len(consultores_filtrados)
+    elif segmentacao == "Time":
+        consultores_filtrados = df_metas_individuais["CONSULTOR"].dropna().unique()
+        n_consultores = len(consultores_filtrados)
+        if time_selecionado == "SDR":
+            n_sdr = 2
+        else:
+            n_sdr = 0
     elif segmentacao == "Consultor":
         consultores_filtrados = [consultor_selecionado]
         n_consultores = len(consultores_filtrados)
@@ -748,18 +764,23 @@ valores = {
 }
 
 # Metas por dia por consultor
-metas = {
-    "Reuniões Marcadas": 40,
-    "Reuniões Realizadas": 28,
-    "Contratos Assinados": 7
+meta_con_rm = 2 * dias_selecionados
+meta_con_rr = 0.7 * meta_con_rm
+meta_con_ca = 0.5 * meta_con_rr
+
+metas_consultor = {
+    "Reuniões Marcadas": meta_con_rm,
+    "Reuniões Realizadas": meta_con_rr,
+    "Contratos Assinados": meta_con_ca
 }
 
 multiplicador_mes = mes_fim - mes_inicio + 1
 
+
 # Meta acumulada = dias * meta_diária * número de consultores
 metas_acumuladas = {
-    etapa: multiplicador_mes * valor_mensal * n_consultores
-    for etapa, valor_mensal in metas.items()
+    etapa: valor_diario * n_consultores
+    for etapa, valor_diario in metas_consultor.items()
 }
 
 projetar_dados_teste(
@@ -774,6 +795,7 @@ projetar_dados_teste(
     metas_acumuladas,
     multiplicador_mes,
     n_consultores,
+    dias_selecionados,
     data_inicio,
     data_fim
 )
