@@ -586,15 +586,23 @@ with col_filtros[1]:
         st.markdown('<div class="filter-title">🏆 Selecione o Time:</div>', unsafe_allow_html=True)
         time_selecionado = st.selectbox(
             "time_selector",
-            ["TEAM BRAVO", "TEAM POWER"],
+            ["TEAM BRAVO", "TEAM POWER", "TEAM ANYWHERE", "TEAM BANKER", "OUTROS"],
             label_visibility="collapsed"
         )
         
-        df_rmarcadas_filtrado = df_rmarcadas_filtrado[df_rmarcadas_filtrado["TIME"] == time_selecionado]
-        df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["TIME"] == time_selecionado]
-        df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["TIME"] == time_selecionado]
-        df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Time"] == time_selecionado]
-        df_metas_individuais = df_metas_individuais[df_metas_individuais["TIME"] == time_selecionado]
+        if time_selecionado != "OUTROS":
+            df_rmarcadas_filtrado = df_rmarcadas_filtrado[df_rmarcadas_filtrado["TIME"] == time_selecionado]
+            df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["TIME"] == time_selecionado]
+            df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["TIME"] == time_selecionado]
+            df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Time"] == time_selecionado]
+            df_metas_individuais = df_metas_individuais[df_metas_individuais["TIME"] == time_selecionado]
+        elif time_selecionado == "OUTROS":
+            outros = ["B2B", "BACKOFFICE", "CLOSER", "PLANEJADOR", "SDR"]
+            df_rmarcadas_filtrado = df_rmarcadas_filtrado[df_rmarcadas_filtrado["TIME"].isin(outros)]
+            df_rrealizadas_filtrado = df_rrealizadas_filtrado[df_rrealizadas_filtrado["TIME"].isin(outros)]
+            df_cassinados_filtrado = df_cassinados_filtrado[df_cassinados_filtrado["TIME"].isin(outros)]
+            df_ligacoes_filtered = df_ligacoes_filtered[df_ligacoes_filtered["Time"].isin(outros)]
+            df_metas_individuais = df_metas_individuais[df_metas_individuais["TIME"].isin(outros)]
         
         st.markdown(f"""
         <div class="info-box">
