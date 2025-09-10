@@ -61,7 +61,7 @@ def main():
             st.query_params.update(auth="admin")
             st.query_params.update(auth="admin", page="metrics")
             carregar_dataframes()
-            st.switch_page("pages/0_Metrics.py")
+            st.switch_page("pages/Funil.py")
         else:
             st.session_state.authenticated = False
             st.session_state.user_type = None

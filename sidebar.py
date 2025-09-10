@@ -17,9 +17,9 @@ def setup_sidebar():
         # Se for admin, exibe todas as páginas
         if user_type == "admin":
             st.page_link("pages/sheets.py", label="📝 Planilhas")
-            st.page_link("pages/0_Metrics.py", label='🔻 Métricas funil')
-            st.page_link("pages/2_SDR.py", label = "📞 SDRs")
-            st.page_link("pages/6_time_bulls.py", label="🐂 Time Bulls - Comercial GR")
+            st.page_link("pages/Funil.py", label = "Dados do Funil")
+            st.page_link("pages/Pipe.py", label = "Pipeline & Forecast")
+            st.page_link("pages/Perdas&Opts.py", label = "Perdas & Oportunidades")
 
         # Botão de Logout (visível apenas se logado)
         if user_type:

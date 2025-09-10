@@ -26,23 +26,14 @@ if "ultima_atualizacao" in st.session_state:
     )
 
 ####################################################################################################################
-if not all(k in st.session_state for k in ["df_ligacoes", "df_rmarcadas","df_rrealizadas", "df_cassinados", "df_metas_individuais", "df_captação"]):
-    carregar_dataframes()
-
-df_ligacoes = st.session_state.get("df_ligacoes")
-df_rmarcadas = st.session_state.get("df_rmarcadas")
-df_rrealizadas = st.session_state.get("df_rrealizadas")
-df_cassinados = st.session_state.get("df_cassinados")
-df_metas_individuais = st.session_state.get("df_metas_individuais")
-df_captação_mes = st.session_state.get("df_captação")
+df_nova_base = st.session_state.get("df_nova_base")
+stage_event = st.session_state.get("stage_events")
+deals_master = st.session_state.get("deals_master")
 ####################################################################################################################
 planilhas = [
-    ("Ligações", df_ligacoes),
-    ("Reuniões Marcadas", df_rmarcadas),
-    ("Reuniões Realizadas", df_rrealizadas),
-    ("Clientes Assinados", df_cassinados),
-    ("Metas Individuais", df_metas_individuais),
-    ("Captação do Mês", df_captação_mes)
+    ("Nova Base", df_nova_base),
+    ("stage event", stage_event),
+    ("deals master", deals_master)
 ]
 
 for nome, df in planilhas:
