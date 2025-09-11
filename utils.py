@@ -128,6 +128,7 @@ def formatar_data_base(
         "proprietario": ["proprietario", "owner", "responsavel", "vendedor", "executivo"],
         "faixa_patrimonio": ["faixa_patrimonio", "faixa_de_patrimonio", "patrimonio_faixa"],
         "aporte_mensal": ["aporte_mensal", "aporte", "aporte_mensal_faixa", "aporte mensal"],
+        "times": ["times", "time", "squad", "equipe", "team", "TIME"],
         # valores
         "valor": ["valor", "amount", "valor_da_oportunidade", "valor_do_negocio", "deal_amount"],
         # etapas / marcos
@@ -259,11 +260,12 @@ def formatar_data_base(
     out["deal_key"] = deal_key
 
     # Dimensões básicas
-    for tgt in ["nome", "email", "telefone", "origem", "tags", "sdr", "proprietario", "faixa_patrimonio", "aporte_mensal", "etapa_atual", "motivo_perda"]:
+    for tgt in ["nome", "email", "telefone", "origem", "tags", "sdr", "proprietario", "faixa_patrimonio", "aporte_mensal", "etapa_atual", "motivo_perda", "times"]:
         col = cols.get(tgt)
         out[tgt] = df[col] if col in df else np.nan
-        if tgt in {"origem", "tags", "sdr", "proprietario", "faixa_patrimonio", "etapa_atual", "motivo_perda"}:
+        if tgt in {"origem", "tags", "sdr", "proprietario", "faixa_patrimonio", "etapa_atual", "motivo_perda", "times"}:
             out[tgt] = out[tgt].astype(str).str.strip().str.lower().replace({"nan": np.nan, "": np.nan})
+
 
     # Valor (R$)
     out["valor"] = np.nan
@@ -336,6 +338,7 @@ def formatar_data_base(
         "ganhou_em": "min",
         "perdeu_em": "min",
         "movimentado_em": "max",
+        "times": "first"
     }
 
     deals_master = (
@@ -420,7 +423,7 @@ def formatar_data_base(
         "deal_key", "opportunity_id", "contact_id",
         # dimensões
         "nome", "email", "telefone", "origem", "tags", "sdr", "proprietario",
-        "faixa_patrimonio", "aporte_mensal", "aporte_mensal_mid",
+        "faixa_patrimonio", "aporte_mensal", "aporte_mensal_mid", "times",
         # valores
         "valor",
         # marcos
@@ -454,7 +457,7 @@ def formatar_data_base(
     ]
 
     events_rows = []
-    dim_cols = ["valor", "origem", "sdr", "proprietario", "faixa_patrimonio", "aporte_mensal", "aporte_mensal_mid", "tags"]
+    dim_cols = ["valor", "origem", "sdr", "proprietario", "faixa_patrimonio", "aporte_mensal", "aporte_mensal_mid", "tags", "times"]
     for _, row in deals_master.iterrows():
         for stage_name, col_dt in stage_map:
             dt = row.get(col_dt)
@@ -484,74 +487,59 @@ def vspace(px: int = 16):
 
 def metricas_reunioes_sdr_vs_consultor(se_coorte: pd.DataFrame, firsts_coorte: pd.DataFrame) -> pd.DataFrame:
     """
-    Calcula conversão e lead time (mediana de dias) para reuniões marcadas por SDR (tag 'reuniao-sdr')
-    versus reuniões marcadas por Consultor (sem a tag), considerando a primeira 'Reunião Marcada'
-    de cada deal dentro do horizonte aplicado (se_coorte).
-
-    Retorna um DF com colunas:
-    ['bucket', 'deals_total', 'deals_won', 'taxa_conversao_%', 'leadtime_mediano_dias']
+    Conversão e lead time (mediana de dias) para reuniões marcadas por SDR (tag 'reuniao-sdr')
+    vs Consultor, considerando a primeira 'Reunião Marcada' e 'Assinado' como conversão final.
     """
     if "stage" not in se_coorte.columns or "deal_key" not in se_coorte.columns:
-        return pd.DataFrame(columns=["bucket","deals_total","deals_won","taxa_conversao_%","leadtime_mediano_dias"])
+        return pd.DataFrame(columns=["bucket","deals_total","deals_signed","taxa_conversao_%","leadtime_mediano_dias"])
 
-    # Normaliza tags
-    tags_col = "tags" if "tags" in se_coorte.columns else None
     se = se_coorte.copy()
-    if tags_col:
-        se["_tags_norm"] = se[tags_col].astype(str).str.lower()
-    else:
-        se["_tags_norm"] = ""
+    tags_col = "tags" if "tags" in se.columns else None
+    se["_tags_norm"] = se[tags_col].astype(str).str.lower() if tags_col else ""
 
-    # Somente eventos de "Reunião Marcada"
+    # somente 'Reunião Marcada'
     meet = se[se["stage"].astype(str).str.lower() == "reunião marcada"].copy()
     if meet.empty:
-        return pd.DataFrame(columns=["bucket","deals_total","deals_won","taxa_conversao_%","leadtime_mediano_dias"])
+        return pd.DataFrame(columns=["bucket","deals_total","deals_signed","taxa_conversao_%","leadtime_mediano_dias"])
 
     meet = meet.sort_values("event_dt")
-    # Primeiro agendamento por deal
     first_meet = (
         meet.loc[meet.groupby("deal_key")["event_dt"].idxmin(), ["deal_key", "event_dt", "_tags_norm"]]
-        .rename(columns={"event_dt": "meeting_dt"})
-        .reset_index(drop=True)
+            .rename(columns={"event_dt": "meeting_dt"})
+            .reset_index(drop=True)
     )
-
-    # Bucket: SDR se tem 'reuniao-sdr' na primeira reunião, senão Consultor
     first_meet["bucket"] = np.where(first_meet["_tags_norm"].str.contains("reuniao-sdr", na=False), "SDR", "Consultor")
 
-    # Junta com Ganhou (primeira data de ganho)
-    ganhou_col = [c for c in firsts_coorte.columns if c.startswith("dt_ganhou")]
-    win_col = ganhou_col[0] if ganhou_col else None
-    if win_col is None:
-        first_meet["won_after_meeting"] = False
+    # pega primeira data de "Assinado"
+    assin_col = [c for c in firsts_coorte.columns if c.startswith("dt_assinado")]
+    dt_assinado = assin_col[0] if assin_col else None
+    if dt_assinado is None:
+        first_meet["signed_after_meeting"] = False
     else:
-        base = firsts_coorte[[win_col]].rename(columns={win_col: "first_win_dt"})
+        base = firsts_coorte[[dt_assinado]].rename(columns={dt_assinado: "first_signed_dt"})
         first_meet = first_meet.merge(base, left_on="deal_key", right_index=True, how="left")
-        first_meet["won_after_meeting"] = (
-            first_meet["first_win_dt"].notna() &
-            (first_meet["first_win_dt"] >= first_meet["meeting_dt"])
+        first_meet["signed_after_meeting"] = (
+            first_meet["first_signed_dt"].notna() &
+            (first_meet["first_signed_dt"] >= first_meet["meeting_dt"])
         )
 
-    # KPIs por bucket
     out = (
         first_meet.groupby("bucket")
-        .agg(
-            deals_total=("deal_key", "nunique"),
-            deals_won=("won_after_meeting", "sum"),
-        )
+        .agg(deals_total=("deal_key", "nunique"),
+             deals_signed=("signed_after_meeting", "sum"))
         .reset_index()
     )
-    out["taxa_conversao_%"] = (out["deals_won"] / out["deals_total"] * 100).round(2)
+    out["taxa_conversao_%"] = (out["deals_signed"] / out["deals_total"] * 100).round(2)
 
-    # Lead time mediano (dias) para quem ganhou
-    won_rows = first_meet[first_meet["won_after_meeting"]].copy()
-    if not won_rows.empty and "first_win_dt" in won_rows.columns:
-        won_rows["leadtime_dias"] = (won_rows["first_win_dt"] - won_rows["meeting_dt"]).dt.total_seconds() / 86400.0
+    won_rows = first_meet[first_meet["signed_after_meeting"]].copy()
+    if not won_rows.empty and "first_signed_dt" in won_rows.columns:
+        won_rows["leadtime_dias"] = (won_rows["first_signed_dt"] - won_rows["meeting_dt"]).dt.total_seconds() / 86400.0
         lt = won_rows.groupby("bucket")["leadtime_dias"].median().round(1).reset_index()
         out = out.merge(lt.rename(columns={"leadtime_dias": "leadtime_mediano_dias"}), on="bucket", how="left")
     else:
         out["leadtime_mediano_dias"] = np.nan
 
-    # Ordenar como Consultor, SDR
     cat = pd.Categorical(out["bucket"], categories=["Consultor", "SDR"], ordered=True)
     out = out.assign(bucket=cat).sort_values("bucket").reset_index(drop=True)
     return out
+

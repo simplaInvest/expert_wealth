@@ -49,11 +49,15 @@ def apply_plotly_theme(fig, *, with_legend=True):
         plot_bgcolor=GRAPH_BG,
         font=dict(family="Inter, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, sans-serif",
                   color=WHITE, size=13),
-        legend=dict(title=None, orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0) if with_legend else dict(orientation="h", y=-0.2),
-        hoverlabel=dict(bgcolor="#161922", bordercolor=GOLD, font=dict(color=WHITE)),
+        title=dict(font=dict(size=18, color=WHITE, family="Inter, Segoe UI, Roboto"), x=0, xanchor="left"),
+        legend=dict(title=None, orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                    bgcolor="rgba(0,0,0,0)") if with_legend else dict(orientation="h", y=-0.2),
+        hoverlabel=dict(bgcolor="#161922", bordercolor=GOLD, font=dict(color=WHITE, size=12)),
         margin=dict(l=16, r=16, t=40, b=16),
-        xaxis=dict(gridcolor=GRAPH_GRID, zeroline=False, showspikes=True, spikethickness=1, spikecolor=GOLD, spikemode="across"),
-        yaxis=dict(gridcolor=GRAPH_GRID, zeroline=False, showspikes=True, spikethickness=1, spikecolor=GOLD, spikemode="across")
+        xaxis=dict(gridcolor=GRAPH_GRID, zeroline=False, showspikes=True, spikethickness=1, spikecolor=GOLD, spikemode="across",
+                   title_font=dict(size=12), tickfont=dict(size=12)),
+        yaxis=dict(gridcolor=GRAPH_GRID, zeroline=False, showspikes=True, spikethickness=1, spikecolor=GOLD, spikemode="across",
+                   title_font=dict(size=12), tickfont=dict(size=12))
     )
     return fig
 
@@ -69,7 +73,9 @@ st.write(""); st.write(""); st.write("")
 # =========================
 st.markdown(f"""
 <style>
-/* Base */
+/* =========================================================
+   Base & tokens
+   =========================================================*/
 :root {{
   --gold: {GOLD};
   --gold-dim: {GOLD_DIM};
@@ -81,13 +87,59 @@ st.markdown(f"""
   --graph-grid: {GRAPH_GRID};
   --gold-border: {BORDER};
 }}
+
 html, body, [data-testid="stAppViewContainer"] {{
-  background: radial-gradient(1200px 800px at 20% -10%, rgba(212,175,55,0.06), transparent 60%),
-              radial-gradient(900px 600px at 120% 10%, rgba(212,175,55,0.05), transparent 60%),
-              var(--bg) !important;
+  background:
+    radial-gradient(1200px 800px at 20% -10%, rgba(212,175,55,0.06), transparent 60%),
+    radial-gradient(900px 600px at 120% 10%, rgba(212,175,55,0.05), transparent 60%),
+    var(--bg) !important;
 }}
 [data-testid="stHeader"] {{ background: transparent; }}
-/* Sidebar */
+
+.block-container {{
+  padding-top: .5rem !important;
+  padding-bottom: 2rem !important;
+  max-width: 1500px;
+}}
+
+/* =========================================================
+   Tipografia & títulos
+   =========================================================*/
+h1, h2, h3, h4 {{
+  letter-spacing: .2px;
+  color: var(--text);
+  margin: 0 0 .35rem 0;
+}}
+h1 {{ font-size: 1.6rem; font-weight: 800; }}
+h2 {{ font-size: 1.25rem; font-weight: 700; }}
+h3 {{ font-size: 1.05rem; font-weight: 700; color: var(--text-dim); }}
+
+p, .stMarkdown, .caption, .stCaption {{ color: var(--text-dim) !important; }}
+
+/* Header executivo (centralizado) */
+.page-header.pro {{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center;
+  padding: 18px 20px;
+  background: linear-gradient(180deg,#141720 0%,#10141c 100%);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;
+  box-shadow: inset 0 -3px 0 0 var(--gold);
+  margin: 6px 0 18px 0;
+}}
+.ph-icon {{
+  font-size: 2rem; line-height:1.2;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 2px 6px rgba(212,175,55,0.25));
+}}
+.ph-title {{
+  font-weight:800; font-size:1.6rem; color: var(--text); letter-spacing:.2px;
+}}
+.ph-sub {{ color: var(--text-soft); font-size:.95rem; margin-top:4px; }}
+
+/* =========================================================
+   Sidebar (polimento sutil — sem mudar lógica)
+   =========================================================*/
 [data-testid="stSidebar"] {{
   background: linear-gradient(180deg, #0d0e12 0%, #0b0c10 100%);
   border-right: 1px solid rgba(255,255,255,0.03);
@@ -97,68 +149,62 @@ html, body, [data-testid="stAppViewContainer"] {{
   background: #0e1016 !important;
   border: 1px solid rgba(255,255,255,0.04) !important;
 }}
-/* Títulos */
-h1, h2, h3, h4 {{
-  letter-spacing: 0.2px;
-  color: var(--text);
+
+/* =========================================================
+   Inputs & controles (estética geral)
+   =========================================================*/
+.stSelectbox, .stMultiSelect, .stDateInput, .stRadio, .stSlider,
+.stTextInput, .stNumberInput {{
+  border-radius: 10px !important;
+  background: #0f1218 !important;
+  border: 1px solid var(--gold);
 }}
-/* Inputs */
-.stSelectbox, .stMultiSelect, .stDateInput, .stRadio, .stSlider, .stTextInput, .stNumberInput {{
-  padding: 6px 10px;
-  border-radius: 12px;
-  background: #10131a30;
-  border: 1px solid rgba(255,255,255,0.07);
+/* Mais espaço entre label e caixa */
+.stDateInput label, .stSelectbox label, .stMultiSelect label,
+.stTextInput label, .stNumberInput label, .stRadio label {{
+  margin-bottom: .35rem !important;
+  margin-top: 0.3rem;
+  margin-left: 0.5rem;
 }}
-/* Botões */
-.stButton>button {{
-  background: linear-gradient(180deg, #12141c 0%, #0e1118 100%);
-  border: 1px solid var(--gold-border);
-  color: var(--text);
-  border-radius: 12px;
-  padding: 0.55rem 0.9rem;
-  transition: transform .08s ease, box-shadow .08s ease, border-color .2s;
-}}
-.stButton>button:hover {{
-  transform: translateY(-1px);
-  border-color: rgba(212,175,55,0.6);
-  box-shadow: 0 10px 30px rgba(212,175,55,0.08);
-}}
-/* Tabs */
+
+/* =========================================================
+   Tabs
+   =========================================================*/
 [data-baseweb="tab-list"] {{
-  gap: .25rem;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  gap: .3rem;
+  border-bottom: 1px solid var(--gold);
+  padding-top: 4px;
 }}
 [data-baseweb="tab"] {{
   background: #0f1218;
   color: var(--text-soft);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--gold);
   border-bottom: none;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
+  padding: 10px 18px;              /* respiro interno */
+  min-height: 42px;                /* altura confortável */
+  font-size: 0.95rem;
+  font-weight: 600;
 }}
 [data-baseweb="tab"][aria-selected="true"] {{
   color: var(--text);
   background: linear-gradient(180deg, #12141c 0%, #0f1218 100%);
-  border-color: rgba(212,175,55,0.35);
-  box-shadow: inset 0 -2px 0 0 var(--gold);
+  border-color: rgba(212,175,55,0.55);
+  box-shadow: inset 0 -3px 0 0 var(--gold);
 }}
-/* Métricas */
-[data-testid="stMetricValue"], [data-testid="stMetricDelta"] {{
-  color: var(--text) !important;
-}}
+
+/* =========================================================
+   Cards KPI & conversão
+   =========================================================*/
 [data-testid="stMetric"] {{
   background: #0e1016;
   border: 1px solid rgba(212,175,55,0.18);
   border-radius: 14px;
   padding: 10px 12px;
 }}
-/* Dataframe */
-[data-testid="stDataFrame"] {{
-  background: #0f1117;
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
-}}
-/* Cards de conversão */
+[data-testid="stMetricValue"], [data-testid="stMetricDelta"] {{ color: var(--text) !important; }}
+
 .conv-card {{
   padding: 0.7rem 0.9rem;
   border-radius: 12px;
@@ -167,29 +213,51 @@ h1, h2, h3, h4 {{
   margin-bottom: 0.6rem;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }}
-.conv-card:hover {{
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-}}
-.conv-flow {{
-  display: flex; align-items: center; gap: 0.45rem;
-  font-size: 0.92rem; font-weight: 600; color: var(--text);
-}}
+.conv-card:hover {{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }}
+.conv-flow {{ display:flex; align-items:center; gap:.45rem; font-size:.92rem; font-weight:600; color:var(--text); }}
 .conv-flow .arrow {{ color: var(--gold); font-weight: 800; }}
-.conv-value {{ margin-top: 0.15rem; font-size: 1.5rem; font-weight: 900; color: var(--gold); }}
-.section-title {{ font-weight: 700; font-size: 1.0rem; margin: 0 0 0.6rem 0; color: var(--text); }}
-.small {{ font-size: 0.85rem; color: #8e94a3; }}
+.conv-value {{ margin-top:.15rem; font-size:1.5rem; font-weight:900; color:var(--gold); }}
+.section-title {{ font-weight:700; font-size:1.0rem; margin:0 0 .6rem 0; color:var(--text); }}
+.small {{ font-size:.85rem; color:#8e94a3; }}
 .ok {{ color:#10b981; }} .warn{{ color:#f59e0b; }} .bad{{ color:#ef4444; }}
 .pill {{ display:inline-block; padding:3px 8px; border-radius:999px; background:#131722; margin-right:6px; color:{TEXT_DIM}; border:1px solid rgba(255,255,255,0.06); }}
-/* Expander */
+
+/* =========================================================
+   Expanders
+   =========================================================*/
 .streamlit-expanderHeader {{
-  background: #0f1218; border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 10px; padding: 10px 12px;
+  background: #0f1218;
+  border: 1px solid var(--gold);     /* dourado */
+  border-radius: 10px;
+  padding: 10px 12px;
 }}
-/* Legendas e captions */
-.block-container p, .caption, .stCaption, .stMarkdown p {{
-  color: var(--text-dim) !important;
+
+/* =========================================================
+   DataFrame: zebra + header sticky
+   =========================================================*/
+[data-testid="stDataFrame"] {{
+  background:#0f1117; border:1px solid rgba(255,255,255,0.06); border-radius:12px;
 }}
+[data-testid="stDataFrame"] .row-heading, [data-testid="stDataFrame"] .col_heading {{
+  font-weight:700; color:var(--text);
+}}
+[data-testid="stDataFrame"] .blank {{ background:#0f1117 !important; }}
+[data-testid="stDataFrame"] table tbody tr:nth-child(odd) {{ background: rgba(255,255,255,0.015); }}
+[data-testid="stDataFrame"] table tbody tr:hover {{ background: rgba(212,175,55,0.05); }}
+[data-testid="stDataFrame"] table thead th {{
+  position: sticky; top: 0; z-index: 1;
+  background: #12141c !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+}}
+
+/* =========================================================
+   Scrollbar discreta
+   =========================================================*/
+*::-webkit-scrollbar {{ height: 10px; width: 10px; }}
+*::-webkit-scrollbar-thumb {{ background: rgba(255,255,255,0.12); border-radius: 10px; }}
+*::-webkit-scrollbar-thumb:hover {{ background: rgba(212,175,55,0.35); }}
+
+/* Legendas/captions */
+.stCaption, .caption {{ color: var(--text-dim) !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -446,82 +514,88 @@ def signed_rate_por_dim(firsts: pd.DataFrame, dim: str) -> pd.DataFrame:
     out = out.reset_index().rename(columns={"_dim": dim})
     return out.sort_values("criadas", ascending=False)
 
-
 # =========================
 # ------- CONTROLES -------
 # =========================
 
-st.title("Funil Comercial — Coortes e Conversões")
+st.markdown(
+    """
+    <div class="page-header pro">
+      <div class="ph-icon">📊</div>
+      <div class="ph-title">Funil Comercial</div>
+      <div class="ph-sub">Visão interna · Atualizado automaticamente</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
 
 firsts_all = primeiras_datas_por_estagio(stage_events)
 min_dt = pd.to_datetime(firsts_all.filter(like="dt_criado").stack().min()) if not firsts_all.empty else pd.Timestamp("2023-01-01")
 max_dt = pd.to_datetime(firsts_all.filter(like="dt_criado").stack().max()) if not firsts_all.empty else pd.Timestamp.today()
 
-c0, c1, c2, c3 = st.columns([1,1,1,2])
 
-with c0:
+with st.expander(label = "Filtros"):
     all_period = st.checkbox("Todos os leads (todo o período)", value=False, key="coorte_all_period")
 
-with c1:
-    d_ini = st.date_input(
-        "Criado a partir de",
-        value=(max_dt - pd.Timedelta(days=30)).date(),
-        min_value=min_dt.date(),
-        max_value=max_dt.date(),
-        disabled=all_period
-    )
+    c0, c1 = st.columns([1,1])
+    with c0:
+        c02, c12 = st.columns(2)
+        with c02:
+            d_ini = st.date_input(
+                "Criado a partir de",
+                value=(max_dt - pd.Timedelta(days=30)).date(),
+                min_value=min_dt.date(),
+                max_value=max_dt.date(),
+                disabled=all_period
+            )
+        with c12:
+            d_fim = st.date_input(
+                "Criado até",
+                value=max_dt.date(),
+                min_value=min_dt.date(),
+                max_value=max_dt.date(),
+                disabled=all_period
+            )
 
-with c2:
-    d_fim = st.date_input(
-        "Criado até",
-        value=max_dt.date(),
-        min_value=min_dt.date(),
-        max_value=max_dt.date(),
-        disabled=all_period
-    )
+    # Se o usuário escolher "todo o período", força limites globais
+    if all_period:
+        d_ini = min_dt.date()
+        d_fim = max_dt.date()
 
-# Se o usuário escolher "todo o período", força limites globais
-if all_period:
-    d_ini = min_dt.date()
-    d_fim = max_dt.date()
+    with c1:
+        opt = st.radio("Horizonte de observação", ["Até hoje", "Até data específica", "Até X dias após criação"], horizontal=True)
+        if opt == "Até hoje":
+            horizonte = {"tipo":"hoje"}
+        elif opt == "Até data específica":
+            h_data = st.date_input("Observar eventos até", value=date.today())
+            horizonte = {"tipo":"data", "ate": h_data}
+        else:
+            h_dias = st.slider("Observar até X dias após criação", min_value=7, max_value=365, value=90, step=1)
+            horizonte = {"tipo":"dias_pos_criacao", "dias": h_dias}
 
-with c3:
-    opt = st.radio("Horizonte de observação", ["Até hoje", "Até data específica", "Até X dias após criação"], horizontal=True)
-    if opt == "Até hoje":
-        horizonte = {"tipo":"hoje"}
-    elif opt == "Até data específica":
-        h_data = st.date_input("Observar eventos até", value=date.today())
-        horizonte = {"tipo":"data", "ate": h_data}
-    else:
-        h_dias = st.slider("Observar até X dias após criação", min_value=7, max_value=365, value=90, step=1)
-        horizonte = {"tipo":"dias_pos_criacao", "dias": h_dias}
-
-
-# Filtros por dimensão (opcional)
-if DIMENSOES:
-    with st.expander("Filtros por dimensão", expanded=False):
-        filtros = {}
-        cols = st.columns(len(DIMENSOES))
-        for i, d in enumerate(DIMENSOES):
-            with cols[i]:
-                if d in stage_events.columns:
-                    vals = sorted(stage_events[d].dropna().astype(str).unique().tolist())
-                    sel = st.multiselect(f"Filtrar {d}", vals, default=[], key=f"filtro_{d}")
-                else:
-                    st.warning(f"Dimensão '{d}' não encontrada na base.")
-                    sel = []
-                filtros[d] = set(sel)
-else:
+    # Filtros por dimensão (opcional)
     filtros = {}
+    cols = st.columns(len(DIMENSOES))
+    for i, d in enumerate(DIMENSOES):
+        with cols[i]:
+            if d in stage_events.columns:
+                vals = sorted(stage_events[d].dropna().astype(str).unique().tolist())
+                sel = st.multiselect(f"Filtrar {d}", vals, default=[], key=f"filtro_{d}")
+            else:
+                st.warning(f"Dimensão '{d}' não encontrada na base.")
+                sel = []
+            filtros[d] = set(sel)
 
-se_filtrado = stage_events.copy()
-for d, sel in filtros.items():
-    if sel:
-        se_filtrado = se_filtrado[se_filtrado[d].astype(str).isin(sel)]
+    se_filtrado = stage_events.copy()
+    for d, sel in filtros.items():
+        if sel:
+            se_filtrado = se_filtrado[se_filtrado[d].astype(str).isin(sel)]
 
-firsts = primeiras_datas_por_estagio(se_filtrado)
-firsts_coorte = filtrar_coorte(firsts, d_ini, d_fim)
-se_coorte = aplicar_horizonte(se_filtrado, firsts_coorte.index, horizonte)
+    firsts = primeiras_datas_por_estagio(se_filtrado)
+    firsts_coorte = filtrar_coorte(firsts, d_ini, d_fim)
+    se_coorte = aplicar_horizonte(se_filtrado, firsts_coorte.index, horizonte)
 
 # =========================
 # -------- VISÕES ---------
@@ -573,7 +647,7 @@ with tab1:
             )
 
     # Linha com 6 colunas (4 KPIs + 2 cards de conversão)
-    k1, k2, k3, k4, k5, k6 = st.columns([1,1,1,1,2,2])
+    k1, k2, k3, k4 = st.columns([1,1,1,1])
 
     # KPIs antigos no novo visual
     render_card(k1, "Leads na coorte", f"{total:,}".replace(",", "."))
@@ -594,38 +668,78 @@ with tab1:
         lt = r.get("leadtime_mediano_dias", np.nan)
         lead_txt = f"Mediana: {lt:.1f} dias da reunião ao assinado" if pd.notna(lt) else "Mediana: —"
         render_card(col, f"{rotulo} → Assinado", f"{conv:.1f}%", lead_txt, pills=[f"Base: {total_b}", f"Assinados: {signed_b}"])
+    vspace(10)
+    with st.expander(label="Conversões Consultor x SDR"):
+        k5, k6, k7 = st.columns([1,1,1])
+        card_conv(k5, "Consultor")
+        card_conv(k6, "SDR")
 
-    card_conv(k5, "Consultor")
-    card_conv(k6, "SDR")
 
+    # --- FILTRO DE ETAPAS (CHECKBOXES) + BLOCO DE "QUANTOS PRECISAMOS" ---
+    cols_ws = st.columns([2, 3])
 
-    # --- FILTRO DE ETAPAS (CHECKBOXES) ---
-    st.markdown("**Etapas do funil a exibir**")
-    # distribui as checkboxes em 3 colunas para ficar compacto
-    cb_cols = st.columns(3)
-    selected_flags = {}
-    for i, stage in enumerate(base_order):
-        with cb_cols[i % 3]:
-            selected_flags[stage] = st.checkbox(stage, value=True, key=f"cb_{stage}")
+    # COLUNA ESQUERDA: seleção de etapas (igual à sua)
+    with cols_ws[0]:
+        with st.container(border=True):
+            st.markdown("**Etapas do funil a exibir**")
+            cb_cols = st.columns([1, 1, 1])
+            selected_flags = {}
+            for i, stage in enumerate(base_order):
+                with cb_cols[i % 3]:
+                    selected_flags[stage] = st.checkbox(stage, value=True, key=f"cb_{stage}")
 
-    selected_stages = [s for s, v in selected_flags.items() if v]
+            selected_stages = [s for s, v in selected_flags.items() if v]
+            if len(selected_stages) == 0:
+                st.info("Selecione ao menos uma etapa para visualizar o funil e as conversões.")
+                st.stop()
 
-    # se nada selecionado, avisa e encerra a tab
-    if len(selected_stages) == 0:
-        st.info("Selecione ao menos uma etapa para visualizar o funil e as conversões.")
-        st.stop()
+            df_funil_sel = df_funil[df_funil["estagio"].isin(selected_stages)].copy()
+            df_funil_sel["estagio"] = pd.Categorical(df_funil_sel["estagio"], categories=base_order, ordered=True)
+            df_funil_sel = df_funil_sel.sort_values("estagio").reset_index(drop=True)
 
-    # filtra df_funil pelas etapas selecionadas e reordena pela ordem base
-    df_funil_sel = (
-        df_funil[df_funil["estagio"].isin(selected_stages)]
-        .copy()
-    )
-    df_funil_sel["estagio"] = pd.Categorical(df_funil_sel["estagio"], categories=base_order, ordered=True)
-    df_funil_sel = df_funil_sel.sort_values("estagio").reset_index(drop=True)
+            # % conversão etapa atual / etapa anterior
+            df_funil_sel["pct_conversao"] = df_funil_sel["count"] / df_funil_sel["count"].shift(1) * 100
+            df_funil_sel.loc[0, "pct_conversao"] = 100
 
-    # recalcula % conversão (etapa atual / etapa anterior dentro do filtro)
-    df_funil_sel["pct_conversao"] = df_funil_sel["count"] / df_funil_sel["count"].shift(1) * 100
-    df_funil_sel.loc[0, "pct_conversao"] = 100
+    # COLUNA DIREITA: "quantos precisamos para 1 avançar"
+    with cols_ws[1]:
+        with st.container(border=True):
+            st.markdown("**Lembrete de esforço:**")
+
+            # Mapa transições -> necessidade (ex.: 12.5 quer dizer 'preciso de 12,5 do estágio anterior para 1 avançar')
+            needs = []  # [(from, to, need_float), ...]
+            df_seq = df_funil_sel.reset_index(drop=True)
+            for i in range(1, len(df_seq)):
+                from_stage = df_seq.loc[i - 1, "estagio"]
+                to_stage   = df_seq.loc[i, "estagio"]
+                pct        = float(df_seq.loc[i, "pct_conversao"])
+                need_val   = (100.0 / pct) if pct > 0 else float("inf")
+                needs.append((from_stage, to_stage, need_val))
+
+            # Helper de formatação (prefere inteiro; senão, 1 casa)
+            def fmt_need(x: float) -> str:
+                if x == float("inf") or x <= 0 or pd.isna(x):
+                    return "—"
+                return f"{x:.0f}" if abs(x - round(x)) < 0.05 else f"{x:.1f}"
+
+            # Renderização: primeiro, as 3 frases executivas (se as etapas existirem no recorte)
+            frases = []
+            mapa = {(f, t): v for f, t, v in needs}
+
+            def add_if_exists(f, t, texto):
+                val = mapa.get((f, t))
+                if val is not None and np.isfinite(val) and val > 0:
+                    frases.append(texto.replace("{N}", fmt_need(val)))
+                else:
+                    # só mostra se ambas etapas estiverem selecionadas; caso não, ignora silenciosamente
+                    pass
+
+            add_if_exists("1º Contato", "Reunião Marcada", "🗣️ Preciso falar com **{N} pessoas** para **marcar 1 reunião**.")
+            add_if_exists("Reunião Marcada", "Reunião Realizada", "📅 Preciso **marcar {N} reuniões** para **realizar 1 reunião**.")
+            add_if_exists("Reunião Realizada", "Assinado", "🤝 Preciso **realizar {N} reuniões** para **assinar 1 contrato**.")
+
+            if frases:
+                st.markdown("<br>".join(frases), unsafe_allow_html=True)
 
     # FUNIL
     col1, col_right = st.columns([2, 1.2])
