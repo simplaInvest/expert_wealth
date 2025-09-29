@@ -64,7 +64,7 @@ def apply_plotly_theme(fig, *, with_legend=True):
 # =========================
 # ------ PAGE CONFIG ------
 # =========================
-st.set_page_config(page_title="Nova Pag", layout="wide")
+st.set_page_config(page_title="📊 Funil", layout="wide")
 st.logo(image='z_logo_light.png', size='large')
 st.write(""); st.write(""); st.write("")
 
@@ -529,17 +529,14 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-
 firsts_all = primeiras_datas_por_estagio(stage_events)
 min_dt = pd.to_datetime(firsts_all.filter(like="dt_criado").stack().min()) if not firsts_all.empty else pd.Timestamp("2023-01-01")
 max_dt = pd.to_datetime(firsts_all.filter(like="dt_criado").stack().max()) if not firsts_all.empty else pd.Timestamp.today()
 
-
 with st.expander(label = "Filtros"):
     all_period = st.checkbox("Todos os leads (todo o período)", value=False, key="coorte_all_period")
 
-    c0, c1 = st.columns([1,1])
+    c0, c1 = st.columns([3,1])
     with c0:
         c02, c12 = st.columns(2)
         with c02:
@@ -564,38 +561,74 @@ with st.expander(label = "Filtros"):
         d_ini = min_dt.date()
         d_fim = max_dt.date()
 
-    with c1:
-        opt = st.radio("Horizonte de observação", ["Até hoje", "Até data específica", "Até X dias após criação"], horizontal=True)
-        if opt == "Até hoje":
-            horizonte = {"tipo":"hoje"}
-        elif opt == "Até data específica":
-            h_data = st.date_input("Observar eventos até", value=date.today())
-            horizonte = {"tipo":"data", "ate": h_data}
-        else:
-            h_dias = st.slider("Observar até X dias após criação", min_value=7, max_value=365, value=90, step=1)
-            horizonte = {"tipo":"dias_pos_criacao", "dias": h_dias}
+#    with c1:
+#        opt = st.radio("Horizonte de observação", ["Até hoje", "Até data específica", "Até X dias após criação"], horizontal=True)
+#        if opt == "Até hoje":
+#            horizonte = {"tipo":"hoje"}
+#        elif opt == "Até data específica":
+#            h_data = st.date_input("Observar eventos até", value=date.today())
+#            horizonte = {"tipo":"data", "ate": h_data}
+#        else:
+#            h_dias = st.slider("Observar até X dias após criação", min_value=7, max_value=365, value=90, step=1)
+#            horizonte = {"tipo":"dias_pos_criacao", "dias": h_dias}
 
-    # Filtros por dimensão (opcional)
-    filtros = {}
-    cols = st.columns(len(DIMENSOES))
-    for i, d in enumerate(DIMENSOES):
-        with cols[i]:
-            if d in stage_events.columns:
-                vals = sorted(stage_events[d].dropna().astype(str).unique().tolist())
-                sel = st.multiselect(f"Filtrar {d}", vals, default=[], key=f"filtro_{d}")
-            else:
-                st.warning(f"Dimensão '{d}' não encontrada na base.")
-                sel = []
-            filtros[d] = set(sel)
+    # --- Filtros (UI) ---
+    cols_filters = st.columns(5)
 
-    se_filtrado = stage_events.copy()
-    for d, sel in filtros.items():
-        if sel:
-            se_filtrado = se_filtrado[se_filtrado[d].astype(str).isin(sel)]
+    with cols_filters[0]:
+        vals_origem = sorted(stage_events['origem'].dropna().astype(str).unique().tolist())
+        sel_origem = st.multiselect("Filtrar origem", vals_origem, default=[], key="filtro_origem")
+
+    with cols_filters[1]:
+        vals_sdr = sorted(stage_events['sdr'].dropna().astype(str).unique().tolist())
+        sel_sdr = st.multiselect("Filtrar SDR", vals_sdr, default=[], key="filtro_sdr")
+
+    with cols_filters[2]:
+        vals_prop = sorted(stage_events['proprietario'].dropna().astype(str).unique().tolist())
+        sel_prop = st.multiselect("Filtrar proprietário", vals_prop, default=[], key="filtro_prop")
+
+    with cols_filters[3]:
+        vals_patrim = [
+            'Menos de R$5 mil', 'Entre R$5 mil e R$20 mil', 'Entre R$20 mil e R$100 mil',
+            'Entre R$100 mil e R$250 mil', 'Entre R$250 mil e R$500 mil',
+            'Entre R$500 mil e R$1 milhão', 'Entre R$1 milhão e R$5 milhões',
+            'Acima de R$5 milhões'
+        ]
+        sel_patrim = st.multiselect("Filtrar Patrimônio", vals_patrim, default=[], key="filtro_patrim")
+
+    with cols_filters[4]:
+        vals_times = sorted(stage_events['times'].dropna().astype(str).str.upper().unique().tolist())
+        sel_times = st.multiselect("Filtrar Times", vals_times, default=[], key="filtro_times")
+
+    # --- Aplicação dos filtros ---
+    import pandas as pd
+
+    mask = pd.Series(True, index=stage_events.index)
+
+    if sel_origem:
+        mask &= stage_events['origem'].astype(str).isin(sel_origem)
+
+    if sel_sdr:
+        mask &= stage_events['sdr'].astype(str).isin(sel_sdr)
+
+    if sel_prop:
+        mask &= stage_events['proprietario'].astype(str).isin(sel_prop)
+
+    # ajuste o nome da coluna de patrimônio abaixo, se necessário:
+    COL_PATRIM = next((c for c in ['patrimonio', 'patrimônio', 'faixa_patrimonio', 'patrimonio_faixa']
+                    if c in stage_events.columns), None)
+    if sel_patrim and COL_PATRIM:
+        mask &= stage_events[COL_PATRIM].astype(str).isin(sel_patrim)
+
+    # 'times' foi normalizado para MAIÚSCULO na seleção; compare em upper aqui também
+    if sel_times:
+        mask &= stage_events['times'].astype(str).str.upper().isin(sel_times)
+
+    se_filtrado = stage_events[mask].copy()
 
     firsts = primeiras_datas_por_estagio(se_filtrado)
     firsts_coorte = filtrar_coorte(firsts, d_ini, d_fim)
-    se_coorte = aplicar_horizonte(se_filtrado, firsts_coorte.index, horizonte)
+    # se_coorte = aplicar_horizonte(se_filtrado, firsts_coorte.index, horizonte)
 
 # =========================
 # -------- VISÕES ---------
@@ -612,7 +645,6 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 # ---------- TAB 1: FUNIL ----------
 with tab1:
-    st.subheader("Funil da Coorte (ever reached)")
 
     df_funil = dados_funil(firsts_coorte)
 
@@ -627,7 +659,7 @@ with tab1:
     valor_total = float(firsts_coorte["valor"].fillna(0).sum()) if "valor" in firsts_coorte else 0.0
 
     # --- MÉTRICAS (mesma linha): 4 KPIs + 2 conversões (Consultor/SDR) no estilo .conv-card ---
-    met = metricas_reunioes_sdr_vs_consultor(se_coorte, firsts_coorte)
+    met = metricas_reunioes_sdr_vs_consultor(firsts_coorte, firsts_coorte)
 
     def render_card(col, titulo: str, valor: str, subtitulo: str = "", pills: list[str] = None):
         pills = pills or []
@@ -946,4 +978,4 @@ with st.expander("Notas de metodologia", expanded=False):
         unsafe_allow_html=True
     )
 
-st.dataframe(se_coorte, use_container_width=True)
+st.dataframe(firsts_coorte, use_container_width=True)
