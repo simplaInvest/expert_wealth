@@ -20,6 +20,7 @@ def setup_sidebar():
             st.page_link("pages/teste.py", label = "Dados do Funil")
             st.page_link("pages/Pipe.py", label = "Pipeline & Forecast")
             st.page_link("pages/Perdas&Opts.py", label = "Perdas & Oportunidades")
+            st.page_link("pages/0_Metrics.py", label = "antigo")
 
         # Botão de Logout (visível apenas se logado)
         if user_type:

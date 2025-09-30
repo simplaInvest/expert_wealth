@@ -521,9 +521,9 @@ def signed_rate_por_dim(firsts: pd.DataFrame, dim: str) -> pd.DataFrame:
 st.markdown(
     """
     <div class="page-header pro">
-      <div class="ph-icon">📊</div>
-      <div class="ph-title">Funil Comercial</div>
-      <div class="ph-sub">Visão interna · Atualizado automaticamente</div>
+      <div class="ph-icon">🎓</div>
+      <div class="ph-title">Expert Wealth - Funil Comercial</div>
+      <div class="ph-sub">Visão interna</div>
     </div>
     """,
     unsafe_allow_html=True
@@ -533,7 +533,7 @@ firsts_all = primeiras_datas_por_estagio(stage_events)
 min_dt = pd.to_datetime(firsts_all.filter(like="dt_criado").stack().min()) if not firsts_all.empty else pd.Timestamp("2023-01-01")
 max_dt = pd.to_datetime(firsts_all.filter(like="dt_criado").stack().max()) if not firsts_all.empty else pd.Timestamp.today()
 
-with st.expander(label = "Filtros"):
+with st.expander(label = "🕵️‍♀️ Filtros"):
     all_period = st.checkbox("Todos os leads (todo o período)", value=False, key="coorte_all_period")
 
     c0, c1 = st.columns([3,1])
@@ -541,7 +541,7 @@ with st.expander(label = "Filtros"):
         c02, c12 = st.columns(2)
         with c02:
             d_ini = st.date_input(
-                "Criado a partir de",
+                "Data Início (Criação)",
                 value=(max_dt - pd.Timedelta(days=30)).date(),
                 min_value=min_dt.date(),
                 max_value=max_dt.date(),
@@ -549,7 +549,7 @@ with st.expander(label = "Filtros"):
             )
         with c12:
             d_fim = st.date_input(
-                "Criado até",
+                "Data Fim (Criação)",
                 value=max_dt.date(),
                 min_value=min_dt.date(),
                 max_value=max_dt.date(),
@@ -630,6 +630,42 @@ with st.expander(label = "Filtros"):
     firsts_coorte = filtrar_coorte(firsts, d_ini, d_fim)
     # se_coorte = aplicar_horizonte(se_filtrado, firsts_coorte.index, horizonte)
 
+##############################################################################
+##                           Velocimetros e Funil                           ##
+##############################################################################
+
+# Cálculos que devem ser mantidos
+dias_selecionados = np.busday_count(d_ini, d_fim + timedelta(days=1))
+mes_inicio = int(d_ini.strftime("%m"))
+mes_fim = int(d_fim.strftime("%m"))
+
+# Valores do funil
+valores = {
+    "Reuniões Marcadas": int(firsts_coorte.filter(like="dt_reunião_marcada").notna().any(axis=1).sum()),
+    "Reuniões Realizadas": int(firsts_coorte.filter(like="dt_reunião_realizada").notna().any(axis=1).sum()),
+    "Contratos Assinados": int(firsts_coorte.filter(like="dt_assinado").notna().any(axis=1).sum())
+}
+
+# Metas por dia por consultor
+meta_con_rm = 2 * dias_selecionados
+meta_con_rr = 0.7 * meta_con_rm
+meta_con_ca = 0.5 * meta_con_rr
+
+metas_consultor = {
+    "Reuniões Marcadas": meta_con_rm,
+    "Reuniões Realizadas": meta_con_rr,
+    "Contratos Assinados": meta_con_ca
+}
+
+multiplicador_mes = mes_fim - mes_inicio + 1
+n_consultores = len(firsts_coorte['proprietario'].dropna().unique()) 
+
+# Meta acumulada = dias * meta_diária * número de consultores
+metas_acumuladas = {
+    etapa: valor_diario * n_consultores
+    for etapa, valor_diario in metas_consultor.items()
+}
+
 # =========================
 # -------- VISÕES ---------
 # =========================
@@ -687,6 +723,126 @@ with tab1:
     render_card(k3, "Perdidos", f"{perdidos:,}".replace(",", "."))
     render_card(k4, "Valor total (R$)", f"{valor_total:,.0f}".replace(",", "."))
 
+    # ---- metas diárias por consultor (derivadas das suas metas do período) ----
+    # Você já tem: metas_consultor = {...} com metas do PERÍODO por consultor
+    metas_diarias_por_consultor = {
+        etapa: (valor_periodo / max(dias_selecionados, 1))
+        for etapa, valor_periodo in metas_consultor.items()
+    }
+
+    BAR_DOURADO  = "#d4af37"
+    META_DOURADA = "#fbbf24"
+
+    def _fmt_num(x):
+        x = float(x)
+        return f"{int(x):,}".replace(",", ".") if x.is_integer() else f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def gauge_meta_periodo(etapa: str,
+                        realizado_total: float,
+                        meta_periodo_equipe: float,
+                        *,
+                        height: int = 380,           # ↑ bem mais alto
+                        domain_y=(0.02, 0.98),      # ↑ ocupa quase toda a área
+                        title_size: int = 18,
+                        number_size: int = 34,
+                        delta_size: int = 12) -> go.Figure:
+
+        realizado_total = float(realizado_total)
+        meta_periodo_equipe = float(meta_periodo_equipe)
+
+        # eixo ~20% acima do maior valor para não “cortar” o arco
+        eixo_max = max(meta_periodo_equipe, realizado_total, 1.0) * 1.2
+
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=realizado_total,
+            domain={"x": [0, 1], "y": list(domain_y)},
+            number={"font": {"size": number_size}},
+            delta={
+                "reference": meta_periodo_equipe,
+                "relative": False,
+                "position": "top",
+                "increasing": {"color": "#10b981"},
+                "decreasing": {"color": "#ef4444"},
+                "font": {"size": delta_size},
+            },
+            title={"text": f"<b>{etapa}</b>", "font": {"size": title_size}},
+            gauge={
+                "axis": {"range": [0, eixo_max],
+                        "tickwidth": 1,
+                        "tickcolor": "#94a3b8",
+                        "tickfont": {"size": 12}},
+                "bar": {"color": BAR_DOURADO},  # barra dourada
+                "bgcolor": "rgba(0,0,0,0)",
+                "borderwidth": 1,
+                "bordercolor": "#1f2937",
+                "steps": [
+                    {"range": [0, 0.7 * meta_periodo_equipe], "color": "rgba(220,38,38,0.20)"},
+                    {"range": [0.7 * meta_periodo_equipe, meta_periodo_equipe], "color": "rgba(234,179,8,0.20)"},
+                    {"range": [meta_periodo_equipe, min(1.2 * meta_periodo_equipe, eixo_max)], "color": "rgba(16,185,129,0.20)"},
+                ],
+                "threshold": {
+                    "line": {"color": META_DOURADA, "width": 4},
+                    "thickness": 0.75,
+                    "value": meta_periodo_equipe
+                }
+            }
+        ))
+
+        # legenda “Meta: X” no topo direito
+        fig.add_annotation(
+            xref="paper", yref="paper",
+            x=0.99, y=0.99,
+            text=f"<b>Meta:</b> {_fmt_num(meta_periodo_equipe)}",
+            showarrow=False,
+            font=dict(size=13, color=META_DOURADA),
+            align="right",
+            bgcolor="rgba(251,191,36,0.08)",
+            bordercolor=META_DOURADA,
+            borderwidth=1,
+            borderpad=4
+        )
+
+        fig.update_layout(
+            margin=dict(t=70, b=6, l=6, r=6),   # espaço pro título e topo
+            height=height,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
+        return fig
+
+
+        # realizados totais
+    rm_real = valores["Reuniões Marcadas"]
+    rr_real = valores["Reuniões Realizadas"]
+    ca_real = valores["Contratos Assinados"]
+
+    # metas do período (dias * meta_diária * n_consultores)
+    rm_meta = metas_acumuladas["Reuniões Marcadas"]
+    rr_meta = metas_acumuladas["Reuniões Realizadas"]
+    ca_meta = metas_acumuladas["Contratos Assinados"]
+
+    # linha com 3 colunas, primeira mais larga
+    col_big, col_small1, col_small2 = st.columns(3)
+
+    with col_big:
+        fig_rm = gauge_meta_periodo("Reuniões Marcadas", rm_real, rm_meta,
+                                    height=250, domain_y=(0.00, 0.0),
+                                    title_size=16, number_size=68)
+        st.plotly_chart(fig_rm, use_container_width=True)
+
+    with col_small1:
+        fig_rr = gauge_meta_periodo("Reuniões Realizadas", rr_real, rr_meta,
+                                    height=250, domain_y=(0.0, 0.0),
+                                    title_size=16, number_size=68)
+        st.plotly_chart(fig_rr, use_container_width=True)
+
+    with col_small2:
+        fig_ca = gauge_meta_periodo("Contratos Assinados", ca_real, ca_meta,
+                                    height=250, domain_y=(0.0, 0.0),
+                                    title_size=16, number_size=68)
+        st.plotly_chart(fig_ca, use_container_width=True)
+
     # Conversões por origem da reunião (Consultor / SDR)
     def card_conv(col, rotulo):
         row = met[met["bucket"] == rotulo]
@@ -701,10 +857,10 @@ with tab1:
         lead_txt = f"Mediana: {lt:.1f} dias da reunião ao assinado" if pd.notna(lt) else "Mediana: —"
         render_card(col, f"{rotulo} → Assinado", f"{conv:.1f}%", lead_txt, pills=[f"Base: {total_b}", f"Assinados: {signed_b}"])
     vspace(10)
-    with st.expander(label="Conversões Consultor x SDR"):
-        k5, k6, k7 = st.columns([1,1,1])
-        card_conv(k5, "Consultor")
-        card_conv(k6, "SDR")
+#    with st.expander(label="Conversões Consultor x SDR"):
+#        k5, k6, k7 = st.columns([1,1,1])
+#        card_conv(k5, "Consultor")
+#        card_conv(k6, "SDR")
 
 
     # --- FILTRO DE ETAPAS (CHECKBOXES) + BLOCO DE "QUANTOS PRECISAMOS" ---
@@ -712,7 +868,7 @@ with tab1:
 
     # COLUNA ESQUERDA: seleção de etapas (igual à sua)
     with cols_ws[0]:
-        with st.container(border=True):
+        with st.expander(label= 'Viz etapas do funil'):
             st.markdown("**Etapas do funil a exibir**")
             cb_cols = st.columns([1, 1, 1])
             selected_flags = {}
@@ -735,8 +891,7 @@ with tab1:
 
     # COLUNA DIREITA: "quantos precisamos para 1 avançar"
     with cols_ws[1]:
-        with st.container(border=True):
-            st.markdown("**Lembrete de esforço:**")
+        with st.expander(label='Lembrete de esforço'):
 
             # Mapa transições -> necessidade (ex.: 12.5 quer dizer 'preciso de 12,5 do estágio anterior para 1 avançar')
             needs = []  # [(from, to, need_float), ...]
@@ -835,6 +990,106 @@ with tab1:
                 """,
                 unsafe_allow_html=True
             )
+    col_leg = st.columns(3)
+    etapas = ['dt_reunião_marcada', 'dt_reunião_realizada', 'dt_assinado']
+    metas_dia = [2, 0.7, 0.5]
+
+    # mapeia nomes bonitos por etapa (título, rótulos, etc.)
+    LABELS = {
+        'dt_reunião_marcada':   dict(nome='Reuniões Marcadas',   ytitle='Reuniões marcadas'),
+        'dt_reunião_realizada': dict(nome='Reuniões Realizadas', ytitle='Reuniões realizadas'),
+        'dt_assinado':          dict(nome='Contratos Assinados', ytitle='Contratos assinados'),
+    }
+
+    for col, (etapa, meta_individual) in zip(col_leg, zip(etapas, metas_dia)):
+        with col:
+            dias = pd.date_range(start=d_ini, end=d_fim, freq='B')
+            meta_diaria_ajustada = meta_individual * n_consultores
+
+            # normaliza a coluna de data da etapa para date (sem hora)
+            serie_datas = pd.to_datetime(firsts_coorte[etapa], errors='coerce').dt.date
+
+            # contagem por dia (robusto)
+            counts = (
+                firsts_coorte.assign(__dia=serie_datas)
+                .groupby('__dia', dropna=False)
+                .size()                                   # conta linhas por dia
+                .reindex(dias.date, fill_value=0)         # garante todos os dias úteis
+            )
+
+            df_dia = counts.rename_axis('DATA').reset_index(name='REALIZADO')
+
+            # rótulos dd/mm
+            df_dia["LABEL"] = pd.to_datetime(df_dia["DATA"]).dt.strftime("%d/%m")
+
+            fig = go.Figure()
+
+            # Barras
+            fig.add_trace(go.Bar(
+                x=df_dia["LABEL"],
+                y=df_dia["REALIZADO"],
+                name=LABELS[etapa]["nome"],
+                marker=dict(
+                    color=df_dia["REALIZADO"],
+                    colorscale=[[0, "#d4af37"], [0.5, "#d4af37"], [1, "#d4af37"]],
+                    showscale=False,
+                    line=dict(color='#1f2937', width=1)
+                ),
+                text=df_dia["REALIZADO"],
+                textposition="outside",
+                textfont=dict(color='#f8fafc'),
+                hovertemplate=f"<b>%{{x}}</b><br>{LABELS[etapa]['nome']}: %{{y}}<extra></extra>"
+            ))
+
+            # Linha da meta (pontilhada amarela, se preferir troque a cor)
+            fig.add_trace(go.Scatter(
+                x=df_dia["LABEL"],
+                y=[meta_diaria_ajustada] * len(df_dia),
+                mode="lines",
+                name="Meta Diária",
+                line=dict(color="#fbbf24", dash="dash", width=3),
+                hovertemplate=f"<b>Meta: {meta_diaria_ajustada}</b><extra></extra>"
+            ))
+
+            fig.update_layout(
+                title=dict(
+                    text=f"<b>{LABELS[etapa]['nome']} por Dia vs Meta</b>",  # <- título por etapa
+                    font=dict(size=16, color="#f8fafc", family="Inter"),
+                    x=0.5
+                ),
+                xaxis=dict(
+                    title=dict(text="Data (dias úteis)", font=dict(color='#f8fafc')),
+                    tickfont=dict(color='#94a3b8')
+                ),
+                yaxis=dict(
+                    title=dict(text=LABELS[etapa]['ytitle'], font=dict(color='#f8fafc')),
+                    tickfont=dict(color='#94a3b8'),
+                    range=[0, max(df_dia["REALIZADO"].max(), meta_diaria_ajustada) * 1.15]
+                ),
+                barmode='group',
+                hovermode="x unified",
+                showlegend=False,
+                margin=dict(t=50, b=20, l=20, r=20),
+                height=240,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+
+            # Anotação da meta
+            fig.add_annotation(
+                xref="paper", yref="y",
+                x=0.99, y=meta_diaria_ajustada,
+                text=f"Meta: {meta_diaria_ajustada}",
+                showarrow=False,
+                font=dict(size=12, color="#fbbf24", family="Inter"),
+                bgcolor="rgba(251,191,36,0.08)",
+                bordercolor="#fbbf24",
+                borderwidth=1,
+                borderpad=5
+            )
+            fig.update_layout(height=380)
+            st.plotly_chart(fig, use_container_width=True)
+
 
 # ------ TAB 2: TRANSIÇÕES ------
 with tab2:
@@ -925,7 +1180,6 @@ with tab4:
         st.caption("Contabiliza a **primeira entrada** por estágio e agrega por período.")
     else:
         st.info("Sem dados para a série temporal nesta seleção.")
-
 
 # ----- TAB 5: LEAD TIMES (BOXPLOTS) -----
 with tab5:
